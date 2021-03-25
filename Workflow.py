@@ -1,6 +1,6 @@
-from workflowhub.generator import MontageRecipe, SeismologyRecipe, EpigenomicsRecipe
 
 def generate_workflow():
+    from workflowhub.generator import MontageRecipe, SeismologyRecipe, EpigenomicsRecipe
     from random import randint
     template = [MontageRecipe, SeismologyRecipe, EpigenomicsRecipe][randint(0, 2)]
     recipe = template.from_num_tasks(num_tasks = randint(100, 400))
@@ -31,4 +31,6 @@ class Workflow(object):
     def __str__(self):
         return f'WF obj | {self.name}'
 
-wf = Workflow('test')
+    def tasks(self):
+        from Task import Task
+        return list(map(lambda job : Task(job), self.wf['workflow']['jobs']))
