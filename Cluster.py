@@ -32,10 +32,14 @@ class Cluster(object):
         while len(self.__task_queue) > 0:
             for node in self.__nodes:
                 if not node.working and len(self.__task_queue) > 0:
-                    node_job_count[node.getID()] += 1
-                    node.working = True
-                    asyncio.create_task(node.run(self.__task_queue.pop(0)))
-                    print(f'assigned node {node.getID()} task ({len(self.__task_queue)} remaining)')
+                    if len(self.__task_queue[0].get_parents()) == 0:    #Make sure all parents have been run
+                        node_job_count[node.getID()] += 1
+                        node.working = True
+                        asyncio.create_task(node.run(self.__task_queue.pop(0), self.__task_queue))
+                        print(f'assigned node {node.getID()} task ({len(self.__task_queue)} remaining)')
+                    else:
+                        #if task can't be run because of dependencies, then move it to end of queue
+                        self.__task_queue = self.__task_queue[1:] + [self.__task_queue[0]]
             await asyncio.sleep(0.01)
         done = False
         while not done:

@@ -9,11 +9,12 @@ class Node(object):
         self.__id = Node.id
         Node.id += 1
 
-    async def run(self, task):
+    async def run(self, task, task_queue): 
+        #need task_queue to pass to task.finish so that we know which tasks to update
         # print(f'node {self.__id} working')
         await task.setup(self.speed)
         await task.run(self.speed)
-        await task.finish(self.speed)
+        await task.finish(self.speed, task, task_queue)
         self.working = False
         # print(f'node {self.__id} done!')
 
