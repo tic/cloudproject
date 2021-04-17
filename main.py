@@ -7,9 +7,13 @@ async def main():
 
     # generate a workflow
     wf = Workflow('test workflow')
+    wf2 = Workflow('test workflow 2')
 
     # submit the workflow to the cloud
+    print("one")
     await cloud.submit_workflow(wf)
+    #print("two")
+    #await cloud.submit_workflow(wf2)
     print('[main] done')
 
 

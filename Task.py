@@ -3,13 +3,20 @@ KBs = lambda x : x * 1024
 MBs = lambda x : x * KBs(1024)
 
 from asyncio import sleep
+
 class Task(object):
+    
     def __init__(self, job_details, dupe=False):
         self.__done = False
         self.__ready = dupe
+        self.__name = job_details["name"]
         self.__job = job_details
         self.__file_read_speed = MBs(500)
         self.__file_write_speed = MBs(370)
+
+    @property
+    def name(self):
+        return self.__name
 
     def duplicate(self):
         t = Task(self.__job, dupe=True)
@@ -42,3 +49,7 @@ class Task(object):
 
         sleep_time /= self.__file_write_speed
         await sleep(sleep_time / speed)
+
+class WorkingTask(Task):
+    def __init__(self, *args, **kwargs):
+        pass

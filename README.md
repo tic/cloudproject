@@ -13,7 +13,7 @@ Install Workflowhub using pip
 ```
 > pip install workflowhub
 ```
-
+All required python packages can be also found in the requirements.txt file
 ## Run program
 The program can be run from main.py
 ```
