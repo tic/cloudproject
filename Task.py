@@ -70,6 +70,8 @@ class Tasks(object):
             'children',
             'files',
             'service_instance_id', # the service instance id that this task will be run on
+            'minimum_runtime',
+            'start_time', # start time of the task
             'completion_time', # calculated an used in Algorithm 2
             'predicated_completion_time', # used in Algorithm 1 to sort the tasks_st
             'latest_completion_time', # Used in Algorithm 2. Calcualted by using equation 8
@@ -84,14 +86,6 @@ class Tasks(object):
 
     def add_tasks_from_wf(self, wf):
 
-        # cancel mappings for waiting tasks in queue
-        # lines 4-5 of Algorithm 1
-        self.taskdf[self.taskdf['complete'] == False]['service_instance_id'] = None
-        self.taskdf[self.taskdf['complete'] == False]['predicated_completion_time'] = None
-        self.taskdf[self.taskdf['complete'] == False]['latest_completion_time'] = None
-
-
-
         wf_name = wf.name
         for task in wf.get_task_json():
             self.taskdf = self.taskdf.append({
@@ -101,6 +95,8 @@ class Tasks(object):
                 'children': task['children'],
                 'files': task['files'],
                 'service_instance_id': None,
+                'minimum_runtime': task['runtime'],
+                'start_time': float(‘inf’),
                 'complete': False,
             }, ignore_index=True)
 
