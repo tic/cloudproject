@@ -10,7 +10,6 @@ class WorkingTask(Task):
     def __init__(self, *args, **kwargs):
         pass
 
-
 class Tasks(object):
 
     def __init__(self):
@@ -73,15 +72,22 @@ class Tasks(object):
                 } for c in task['children']
             ])
 
-    def lct(t_name):
+    ## TODO: finish this function
+    def lct(self, t_name):
 
-        pass
+        task_df = self.taskdf[self.taskdf.name == t_name]
 
+        if not task_df.empty():
 
+            task_children = task_df.squeeze().children
 
+            if task_children:
+                parents_of_children = self.taskdf[self.taskdf.name.isin(task_children)]
 
-
-
+                # calculate completion time of all parents_of_children
+                
+            else:
+                return 0
 
     # Input Time -- the time it takes a task to read in its files
     # @task(string) - the task's name
