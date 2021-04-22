@@ -96,7 +96,7 @@ class Tasks(object):
                 'files': task['files'],
                 'service_instance_id': None,
                 'minimum_runtime': task['runtime'],
-                'start_time': float(‘inf’),
+                'start_time': float('inf'),
                 'complete': False,
             }, ignore_index=True)
 
@@ -121,3 +121,7 @@ class Tasks(object):
                     'nexttask': c
                 } for c in task['children']
             ])
+
+    def lct(t_name):
+
+        pass
