@@ -3,57 +3,8 @@ from asyncio import sleep
 import pandas
 import json
 
-KBs = lambda x : x * 1024
-MBs = lambda x : x * KBs(1024)
-
-READ_SPEED = MBs(500)
-WRITE_SPEED = MBs(370)
-
-class Task(object):
-    
-    def __init__(self, job_details, dupe=False):
-        self.__done = False
-        self.__ready = dupe
-        self.__name = job_details["name"]
-        self.__job = job_details
-        self.__file_read_speed = MBs(500)
-        self.__file_write_speed = MBs(370)
-
-    @property
-    def name(self):
-        return self.__name
-
-    def duplicate(self):
-        t = Task(self.__job, dupe=True)
-        return t
-
-    async def setup(self, speed):
-        if self.__ready:
-            return
-
-        # sleep based on input file read time
-        sleep_time = 0
-        for file in self.__job['files']:
-            if file['link'] == 'output':
-                sleep_time += file['size']
-        sleep_time /= self.__file_read_speed
-        await sleep(sleep_time / speed)
-        self.__ready = True
-
-    async def run(self, speed):
-        # sleep based on job runtime
-        run_time = self.__job['runtime'] / speed
-        await sleep(run_time)
-
-    async def finish(self, speed):
-        # sleep based on output file write time
-        sleep_time = 0
-        for file in self.__job['files']:
-            if file['link'] == 'output':
-                sleep_time += file['size']
-
-        sleep_time /= self.__file_write_speed
-        await sleep(sleep_time / speed)
+from time import time as now
+crt = lambda : round(now() * 1000)
 
 class WorkingTask(Task):
     def __init__(self, *args, **kwargs):
@@ -125,3 +76,47 @@ class Tasks(object):
     def lct(t_name):
 
         pass
+
+
+
+
+
+
+
+    # Input Time -- the time it takes a task to read in its files
+    # @task(string) - the task's name
+    def it(self, task):
+        from Node import Node
+        srv_id = self.tasksdf[self.tasksdf['name'] == task]['service_instance_id']
+        input_size = 0 # TODO
+        try:
+            mapped_node = Node.instance_map[srv_id]
+        except KeyError:
+            mapped_node = None
+        if mapped_node is None:
+            # Assume the worse case node
+            from Node import node_types
+            wc_proc, wc_read, wc_write = node_types[len(node_types) - 1]
+
+            # input time is the size of the input divided by the worse case read time
+            return input_size / wc_read
+
+        # Task has a mapped node, use it's actual speed data
+        rs = mapped_node.read_speed # TODO - This property does not exist in the node class, yet...
+        return input_size / rs
+
+    # Output Time -- the time it takes a task to write its output files
+    # @task(string) - the task's name
+    def ot(self, task):
+        pass
+
+    # Data Transfer Time (dt) from task p to task j
+    # @task_p(string) - the task's name
+    # @task_j(string) -    "       "
+    def dt(self, task_p, task_j):
+        # if tasks  and j are on the same service instance,
+        # the data transfer time is zero
+        if self.taskdf[self.taskdf['name'] == task_p]['service_instance_id'] == self.taskdf[self.taskdf['name'] == task_j]['service_instance_id']:
+            return 0
+
+        return ot(task_p) + it(task_j)
