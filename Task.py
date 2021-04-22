@@ -114,7 +114,7 @@ class Tasks(object):
                     'tasks': ','.join([p, task['name']]),
                     'prevtask': task['name'],
                     'nexttask': p
-                } for c in task['parents']
+                } for p in task['parents']
             ])
 
             # create edges to connect child tasks
