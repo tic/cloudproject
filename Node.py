@@ -15,12 +15,22 @@ node_types = [
 class Node(object):
     id = 0
     instance_map = {}
-    def __init__(self, process_speed=1):
-        self.speed = process_speed
+
+    # @type - integer in [ 0, len(node_types) )
+    def __init__(self, type=0):
         self.working = False
         self.__id = Node.id
         Node.id += 1
         Node.instance_map[self.__id] = self
+
+        # Add properties for the various node speeds
+        if type < 0 or type > len(node_types) - 1:
+            type = 0
+        pspeed, rspeed, wspeed = node_types[type]
+        self.process_speed = pspeed
+        self.read_speed = rspeed
+        self.write_speed = wspeed
+
 
     async def run(self, task):
         # print(f'node {self.__id} working')

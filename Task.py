@@ -78,7 +78,7 @@ class Tasks(object):
     # Completion Time
     # @task(string) - the task's name
     def ct(self, task):
-        
+
         taskobj = self.get_task_row(task)
 
         json_time = taskobj.minimum_runtime
@@ -107,42 +107,57 @@ class Tasks(object):
                 parents_of_children = self.taskdf[self.taskdf.name.isin(task_children)]
 
                 # calculate completion time of all parents_of_children
-                
+
             else:
                 return 0
 
     # Input Time -- the time it takes a task to read in its files
     # @task(string) - the task's name
     def it(self, task):
-        from Node import Node
-
         taskobj = self.get_task_row(task)
-
         srv_id = taskobj.service_instance_id # returns None if no service instance is found
 
-        # sums the size of all inputs files together
+        # Compute input size by summing the size of all inputs files
         input_size = sum([f['size'] for f in taskobj.files if f['link'] == 'input'])
 
-        try:
-            mapped_node = Node.instance_map[srv_id]
-        except KeyError:
-            mapped_node = None
-        if mapped_node is None:
-            # Assume the worse case node
+        # Get the node the task is mapped to
+        if srv_id is None:
+            # No mapped node, assume the worst case node
             from Node import node_types
             wc_proc, wc_read, wc_write = node_types[len(node_types) - 1]
 
             # input time is the size of the input divided by the worse case read time
             return input_size / wc_read
+        else:
+            from Node import Node
+            mapped_node = Node.instance_map[srv_id]
 
-        # Task has a mapped node, use it's actual speed data
-        rs = mapped_node.read_speed # TODO - This property does not exist in the node class, yet...
-        return input_size / rs
+            # Task has a mapped node, use it's actual speed data
+            return input_size / mapped_node.read_speed
 
     # Output Time -- the time it takes a task to write its output files
     # @task(string) - the task's name
     def ot(self, task):
-        pass
+        taskobj = self.get_task_row(task)
+        srv_id = taskobj.service_instance_id # returns None if no service instance is found
+
+        # Compute output size by summing the size of all inputs files
+        output_size = sum([f['size'] for f in taskobj.files if f['link'] == 'output'])
+
+        # Get the node the task is mapped to
+        if srv_id is None:
+            # No mapped node, assume the worst case node
+            from Node import node_types
+            wc_proc, wc_read, wc_write = node_types[len(node_types) - 1]
+
+            # input time is the size of the input divided by the worse case read time
+            return output_size / wc_read
+        else:
+            from Node import Node
+            mapped_node = Node.instance_map[srv_id]
+
+            # Task has a mapped node, use it's actual speed data
+            return output_size / mapped_node.write_speed
 
     # Data Transfer Time (dt) from task p to task j
     # @task_p(string) - the task's name
