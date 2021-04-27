@@ -19,11 +19,28 @@ class Cluster(object):
         from Workflow import Workflow
         assert(type(wf) == Workflow)
 
+        ###
+        # Algorithm 1
+        ###
+        self.__tasks.unmap_service_instances() # cancel all service instance mappings
 
-        self.__tasks.get_tasks()['service_instance_id'] = None # cancel all service instance mappings
+        # might need a function to cancel rent plans here
+
         self.__tasks.add_tasks_from_wf(wf) # tasks from workflow added to task instance
 
-        self.__queued_workflows.append(wf)
+        while self.__tasks.get_tasks(mapped=False).size > 0:
+            unmapped_tasks = self.__tasks.get_tasks(mapped=False)
+            task_names = unmapped_tasks[unmapped_tasks['unmapped_parent_count'] == 0]['name'].tolist()
+            task_pct = [{"name": n, "pct": self.__tasks.calc_pct(n)} for n in task_names]
+            task_pct = sorted(x, key=lambda x: x['pct'], reverse=True)
+
+            for t in task_pct:
+                print t["name"]
+                ##
+                # Add algorithm 2 Task Scheduler here
+
+                # for each mapped task, updated all child task unmapped_parent_count fields
+
         await self.__start_workflow()
 
     async def __start_workflow(self):
