@@ -11,6 +11,10 @@ class Cluster(object):
         self.__task_queue = []
         self.working = False
 
+    # Get available service instances
+    def get_si_list(self):
+        return list(filter(lambda node : not node.working, self._nodes))
+
     async def submit_workflow(self, wf):
         from Workflow import Workflow
         assert(type(wf) == Workflow)
@@ -66,4 +70,4 @@ class Cluster(object):
         min_cost = float('inf')
 
         # Pseudocode line 3
-        
+        # self.__tasks
