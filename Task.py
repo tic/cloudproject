@@ -85,14 +85,6 @@ class Tasks(object):
         elif mapped == False:
             retdf = retdf[retdf['service_instance_id'] == None]
         retdf = self.taskdf
- 
-        if completed != None:
-            retdf = retdf[retdf['complete'] == completed]
-
-        if mapped == True:
-            retdf = retdf[retdf['service_instance_id'] != None]
-        elif mapped == False:
-            retdf = retdf[retdf['service_instance_id'] == None]
 
         return retdf
 
@@ -101,6 +93,9 @@ class Tasks(object):
     def get_task_row(self, task):
         # might want to check to see if there are no duplicate names before squeezing
         return self.taskdf[self.taskdf['name'] == task].squeeze()
+
+    def unmap_service_instances(self):
+        self.taskdf[self.taskdf.complete == False]['service_instance_id'] = None
 
     # Completion Time
     # @task(string) - the task's name

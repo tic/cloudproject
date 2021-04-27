@@ -22,7 +22,7 @@ class Cluster(object):
         ###
         # Algorithm 1
         ###
-        self.__tasks.get_tasks()['service_instance_id'] = None # cancel all service instance mappings
+        self.__tasks.unmap_service_instances() # cancel all service instance mappings
 
         # might need a function to cancel rent plans here
 
