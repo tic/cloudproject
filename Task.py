@@ -69,6 +69,9 @@ class Tasks(object):
                 } for c in task['children']
             ])
 
+        import pdb
+        pdb.set_trace()
+
     # returns a pd series representation of single task
     # @task(string) - the task's name
     def get_task_row(self, task):
@@ -94,22 +97,16 @@ class Tasks(object):
     # @task(string) - the task's name
     def lct(self, task):
 
-        task_df = self.taskdf[self.taskdf.name == task]
+        taskobj = get_task_row(task)
 
-        if not task_df.empty:
+        task_children = taskobj.children
 
-            task_children = task_df.squeeze().children
-
-            if task_children:
-                # find all the parents of a node with name 'filterContams_00000002'
-                #self.taskdf[self.taskdf.parents.apply(lambda x: 'filterContams_00000002' in x)]
-
-                parents_of_children = self.taskdf[self.taskdf.name.isin(task_children)]
-
-                # calculate completion time of all parents_of_children
-
-            else:
-                return 0
+        if task_children:
+            return min(
+                max(self.ct(p) for p in get_task_row(child).parents) + self.dt(task, child) for child in task_children
+            )
+        else:
+            return 0
 
     # Input Time -- the time it takes a task to read in its files
     # @task(string) - the task's name
