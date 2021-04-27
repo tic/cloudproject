@@ -69,10 +69,26 @@ class Tasks(object):
                 } for c in task['children']
             ])
 
-    ## TODO: finish this function
+    # returns a pd series representation of single task
+    # @task(string) - the task's name
+    def get_task_row(self, task):
+        # might want to check to see if there are no duplicate names before squeezing
+        return self.taskdf[self.taskdf['name'] == task].squeeze()
+
+    # Completion Time
     # @task(string) - the task's name
     def ct(self, task):
-        pass
+        
+        taskobj = self.get_task_row(task)
+
+        json_time = taskobj.minimum_runtime
+        it = self.it(task)
+
+        task_parents = self.get_task_row(task).parents
+        #TODO: possible performance issues due to recursive call to ct. Should we store this data in the dataframe?
+        parent_max_ct = max([self.ct(t) for t in task_parents]) if task_parents else 0
+
+        return json_time + it + parent_max_ct
 
     ## TODO: finish this function
     # @task(string) - the task's name
@@ -100,9 +116,7 @@ class Tasks(object):
     def it(self, task):
         from Node import Node
 
-        # pd series representation of single task
-        # might want to check to see if there are no duplicate names before squeezing
-        taskobj = self.taskdf[self.taskdf['name'] == task].squeeze()
+        taskobj = self.get_task_row(task)
 
         srv_id = taskobj.service_instance_id # returns None if no service instance is found
 
