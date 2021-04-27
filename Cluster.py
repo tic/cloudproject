@@ -30,12 +30,12 @@ class Cluster(object):
 
         while self.__tasks.get_tasks(mapped=False).size > 0:
             unmapped_tasks = self.__tasks.get_tasks(mapped=False)
-            task_names = unmapped_tasks[unmapped_tasks['unmapped_parent_count'] == 0]['name'].tolist()
+            task_names = unmapped_tasks[unmapped_tasks['unmapped_parent_count'] == 0].index.tolist()
             task_pct = [{"name": n, "pct": self.__tasks.calc_pct(n)} for n in task_names]
             task_pct = sorted(x, key=lambda x: x['pct'], reverse=True)
 
             for t in task_pct:
-                print t["name"]
+                print (t["name"])
                 ##
                 # Add algorithm 2 Task Scheduler here
 

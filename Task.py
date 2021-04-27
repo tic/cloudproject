@@ -25,6 +25,7 @@ class Tasks(object):
             'unmapped_parent_count', # the number of parents who are not yet mapped to a service instance node. Used for Algorithm 1
             'complete',
         ])
+        self.taskdf.set_index('name', inplace=True)
 
         self.edgedf = pandas.DataFrame(columns=[
             'tasks', # should be in a standardized format like <NAME>,<NAME>
@@ -37,8 +38,8 @@ class Tasks(object):
 
         wf_name = wf.name
         for task in wf.get_task_json():
-            self.taskdf = self.taskdf.append({
-                'name': task['name'],
+            self.taskdf = self.taskdf.append(pandas.Series({
+                #'name': task['name'],
                 'workflow': wf_name,
                 'parents': task['parents'],
                 'children': task['children'],
@@ -49,7 +50,7 @@ class Tasks(object):
                 'minimum_runtime': task['runtime'],
                 'start_time': float('inf'),
                 'complete': False,
-            }, ignore_index=True)
+            }, name=task['name']))
 
 
             # the next two methods may cause issues: there is no check in place to determin if the child task exists
@@ -64,14 +65,6 @@ class Tasks(object):
                 } for p in task['parents']
             ])
 
-            # create edges to connect child tasks
-            self.edgedf = self.edgedf.append([
-                {
-                    'tasks': ','.join([task['name'], c]),
-                    'prevtask': task['name'],
-                    'nexttask': c
-                } for c in task['children']
-            ])
 
     def get_tasks(self, completed=False, mapped=None):
 
@@ -92,7 +85,10 @@ class Tasks(object):
     # @task(string) - the task's name
     def get_task_row(self, task):
         # might want to check to see if there are no duplicate names before squeezing
-        return self.taskdf[self.taskdf['name'] == task].squeeze()
+        return self.taskdf.loc[task].squeeze()
+
+    def update_task_field(self, task, field, value):
+        self.taskdf.loc[task, field] = value
 
     def unmap_service_instances(self):
         self.taskdf[self.taskdf.complete == False]['service_instance_id'] = None
@@ -211,18 +207,21 @@ class Tasks(object):
         # calculating pct is required per line 9 of algorithm 1
         # pct is only calculated for the tasks for which all their predecessors have been mapped
         # task_name is a string which is used to query the pandas dataframe
-        ST_task =  self.taskdf[self.taskdf['name'] == task_name]
+        
+        ST_task =  self.get_task_row(task_name)
+
         if len(ST_task['parents']) != 0:
             max_pct = 0
-            for p in self.taskdf['parents']:
-                ct = self.taskdf[self.taskdf['parents'] == p]['completion_time'] #I feel like completion time gets calculated in the task_schedule function
+            for p in ST_task.parents:
+                ct = self.get_task_row(p)['completion_time'] #I feel like completion time gets calculated in the task_schedule function
                 dt = self.dt(taskname, p)
                 max_pct = ct + dt if ct + dt > max_pct else max_pct
             max_pct = max_pct + self.mrt(task_name)
-            ST_task['predicated_completion_time'] = max_pct
+            pct = max_pct
         else:
-            ST_task['predicated_completion_time'] = crt() + self.it(task_name)
-        return ST_task['predicated_completion_time']
+            pct = crt() + self.it(task_name)
+        self.taskdf.update_task_field(task_name, 'predicated_completion_time', pct)
+        return pct
 
 
     def calc_ct(self, task_name):
