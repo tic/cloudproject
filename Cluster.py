@@ -49,3 +49,14 @@ class Cluster(object):
         print('workflow done!')
         for node, count in enumerate(node_job_count):
             print(f'node {node} processed {count} tasks')
+
+    def task_schedule(self, task):
+        # Variable setup (pseudocode lines 1-2)
+        selected_service_instance = None
+        tag = False
+        dup_tasks = []
+        min_completion_time = float('inf')
+        min_cost = float('inf')
+
+        # Pseudocode line 3
+        
