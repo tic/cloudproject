@@ -173,6 +173,26 @@ class Tasks(object):
 
         return ot(task_p) + it(task_j)
 
+    # Minimuim possible runtime of a task on the best possible node
+    def mrt(self, task):
+        taskobj = self.get_task_row(task)
+
+        from Node import node_types
+        best_proc_speed, rs, ws = node_types[0]
+
+        # Runtime is the task's runtime divided by the node's processing speed
+        return taskobj.minimum_runtime / best_proc_speed
+
+    # Runtime of a task on a particular node type (service instance type)
+    def rt(self, task, node_type):
+        taskobj = self.get_task_row(task)
+        try:
+            from Node import node_types
+            proc_speed, rs, ws = node_types[node_type]
+            return taskobj.minimum_runtime / proc_speed
+        except Exception:
+            raise Exception('invalid node type passed to rt()')
+
     def calc_pct(self, task_name):
         # calcualting pct per equation 8 of paper
         # calculating pct is required per line 9 of algorithm 1
@@ -186,7 +206,7 @@ class Tasks(object):
                 dt = self.dt(taskname, p)
                 max_pct = ct + dt if ct + dt > max_pct else max_pct
             max_pct = max_pct + self.mrt(task_name)
-            ST_task['predicated_completion_time'] = max_pct 
+            ST_task['predicated_completion_time'] = max_pct
         else:
             ST_task['predicated_completion_time'] = crt() + self.it(task_name)
         return

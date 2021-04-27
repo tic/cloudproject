@@ -37,3 +37,9 @@ class Workflow(object):
 
     def get_task_json(self):
         return self.wf['workflow']['jobs']
+
+    # Computes the completion time of a workflow of tasks
+    # This was on our note sheet, but I'm not sure if we actually need it,
+    # so it's a stub for now.
+    def ct(self):
+        pass
