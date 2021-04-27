@@ -1,4 +1,5 @@
 from Node import Node
+from Task import Tasks
 import asyncio
 from time import sleep
 
@@ -6,12 +7,18 @@ class Cluster(object):
     def __init__(self, nodes, process_speed=1):
         self.__nodes = list(map(lambda _ : Node(process_speed=process_speed), [0] * nodes))
         self.__queued_workflows = []
+        self.__tasks = Tasks()
         self.__task_queue = []
         self.working = False
 
     async def submit_workflow(self, wf):
         from Workflow import Workflow
         assert(type(wf) == Workflow)
+
+
+        self.__tasks.get_tasks()['service_instance_id'] = None # cancel all service instance mappings
+        self.__tasks.add_tasks_from_wf(wf) # tasks from workflow added to task instance
+
         self.__queued_workflows.append(wf)
         await self.__start_workflow()
 

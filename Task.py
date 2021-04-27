@@ -72,6 +72,12 @@ class Tasks(object):
         import pdb
         pdb.set_trace()
 
+
+    def get_tasks(self, completed=False):
+        return self.taskdf[
+            self.taskdf['complete'] == completed
+        ]
+
     # returns a pd series representation of single task
     # @task(string) - the task's name
     def get_task_row(self, task):
