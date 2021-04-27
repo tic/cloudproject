@@ -21,6 +21,8 @@ class Tasks(object):
             'completion_time', # calculated an used in Algorithm 2
             'predicated_completion_time', # used in Algorithm 1 to sort the tasks_st
             'latest_completion_time', # Used in Algorithm 2. Calcualted by using equation 8
+            'parent_count',
+            'unmapped_parent_count', # the number of parents who are not yet mapped to a service instance node. Used for Algorithm 1
             'complete',
         ])
 
@@ -40,6 +42,8 @@ class Tasks(object):
                 'workflow': wf_name,
                 'parents': task['parents'],
                 'children': task['children'],
+                'parent_count': len(task['parents']),
+                'unmapped_parent_count': len(task['parents']),
                 'files': task['files'],
                 'service_instance_id': None,
                 'minimum_runtime': task['runtime'],
@@ -69,14 +73,28 @@ class Tasks(object):
                 } for c in task['children']
             ])
 
-        import pdb
-        pdb.set_trace()
+    def get_tasks(self, completed=False, mapped=None):
 
+        retdf = self.taskdf
+ 
+        if completed != None:
+            retdf = retdf[retdf['complete'] == completed]
 
-    def get_tasks(self, completed=False):
-        return self.taskdf[
-            self.taskdf['complete'] == completed
-        ]
+        if mapped == True:
+            retdf = retdf[retdf['service_instance_id'] != None]
+        elif mapped == False:
+            retdf = retdf[retdf['service_instance_id'] == None]
+        retdf = self.taskdf
+ 
+        if completed != None:
+            retdf = retdf[retdf['complete'] == completed]
+
+        if mapped == True:
+            retdf = retdf[retdf['service_instance_id'] != None]
+        elif mapped == False:
+            retdf = retdf[retdf['service_instance_id'] == None]
+
+        return retdf
 
     # returns a pd series representation of single task
     # @task(string) - the task's name
@@ -201,7 +219,7 @@ class Tasks(object):
         ST_task =  self.taskdf[self.taskdf['name'] == task_name]
         if len(ST_task['parents']) != 0:
             max_pct = 0
-            for p in self.taskdf[_'parents']:
+            for p in self.taskdf['parents']:
                 ct = self.taskdf[self.taskdf['parents'] == p]['completion_time'] #I feel like completion time gets calculated in the task_schedule function
                 dt = self.dt(taskname, p)
                 max_pct = ct + dt if ct + dt > max_pct else max_pct
@@ -209,7 +227,7 @@ class Tasks(object):
             ST_task['predicated_completion_time'] = max_pct
         else:
             ST_task['predicated_completion_time'] = crt() + self.it(task_name)
-        return
+        return ST_task['predicated_completion_time']
 
 
     def calc_ct(self, task_name):
