@@ -169,3 +169,27 @@ class Tasks(object):
             return 0
 
         return ot(task_p) + it(task_j)
+
+    def calc_pct(self, task_name):
+        # calcualting pct per equation 8 of paper
+        # calculating pct is required per line 9 of algorithm 1
+        # pct is only calculated for the tasks for which all their predecessors have been mapped
+        # task_name is a string which is used to query the pandas dataframe
+        ST_task =  self.taskdf[self.taskdf['name'] == task_name]
+        if len(ST_task['parents']) != 0:
+            max_pct = 0
+            for p in self.taskdf[_'parents']:
+                ct = self.taskdf[self.taskdf['parents'] == p]['completion_time'] #I feel like completion time gets calculated in the task_schedule function
+                dt = self.dt(taskname, p)
+                max_pct = ct + dt if ct + dt > max_pct else max_pct
+            max_pct = max_pct + self.mrt(task_name)
+            ST_task['predicated_completion_time'] = max_pct 
+        else:
+            ST_task['predicated_completion_time'] = crt() + self.it(task_name)
+        return
+
+
+    def calc_ct(self, task_name):
+        # dynamically calculate the completion_time of a given task
+        # task_name is a string that can be queried in dataframe
+        return ct
