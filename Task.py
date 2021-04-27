@@ -6,10 +6,6 @@ import json
 from time import time as now
 crt = lambda : round(now() * 1000)
 
-class WorkingTask(Task):
-    def __init__(self, *args, **kwargs):
-        pass
-
 class Tasks(object):
 
     def __init__(self):
@@ -34,6 +30,7 @@ class Tasks(object):
             'nexttask',
         ])
 
+    # @wf(dict) - dictionary representation of workflow json
     def add_tasks_from_wf(self, wf):
 
         wf_name = wf.name
@@ -73,15 +70,24 @@ class Tasks(object):
             ])
 
     ## TODO: finish this function
-    def lct(self, t_name):
+    # @task(string) - the task's name
+    def ct(self, task):
+        pass
 
-        task_df = self.taskdf[self.taskdf.name == t_name]
+    ## TODO: finish this function
+    # @task(string) - the task's name
+    def lct(self, task):
 
-        if not task_df.empty():
+        task_df = self.taskdf[self.taskdf.name == task]
+
+        if not task_df.empty:
 
             task_children = task_df.squeeze().children
 
             if task_children:
+                # find all the parents of a node with name 'filterContams_00000002'
+                #self.taskdf[self.taskdf.parents.apply(lambda x: 'filterContams_00000002' in x)]
+
                 parents_of_children = self.taskdf[self.taskdf.name.isin(task_children)]
 
                 # calculate completion time of all parents_of_children
@@ -93,8 +99,16 @@ class Tasks(object):
     # @task(string) - the task's name
     def it(self, task):
         from Node import Node
-        srv_id = self.tasksdf[self.tasksdf['name'] == task]['service_instance_id']
-        input_size = 0 # TODO
+
+        # pd series representation of single task
+        # might want to check to see if there are no duplicate names before squeezing
+        taskobj = self.taskdf[self.taskdf['name'] == task].squeeze()
+
+        srv_id = taskobj.service_instance_id # returns None if no service instance is found
+
+        # sums the size of all inputs files together
+        input_size = sum([f['size'] for f in taskobj.files if f['link'] == 'input'])
+
         try:
             mapped_node = Node.instance_map[srv_id]
         except KeyError:
