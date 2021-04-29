@@ -99,31 +99,7 @@ class Tasks(object):
 
     # Completion Time
     # @task(string) - the task's name
-    def ct(self, task, node_type=None, duplicate=False):
-        from Node import Node, node_types
-        taskobj = self.get_task_row(task)
-        if taskobj.service_instance_id is not None:
-            node_type = Node.instance_map[taskobj.service_instance_id].type
-
-        if node_type is None:
-            node_type = len(node_types) - 1
-
-
-        json_time = taskobj.minimum_runtime / node_types[node_type][0]
-
-        task_parents = self.get_task_row(task).parents
-        #TODO: possible performance issues due to recursive call to ct. Should we store this data in the dataframe?
-        parent_max_ct = max([self.ct(t) for t in task_parents]) if task_parents else 0
-
-        # If a task is being duplicated, the input time is voided
-        if duplicate:
-            return json_time + parent_max_ct
-
-        it = self.it(task, node_type)
-        return json_time + it + parent_max_ct
-
-
-    def mitch_ct(self, task, curr_node=None, duplicated_tasks=None):
+    def ct(self, task, curr_node=None, duplicated_tasks=None):
         from Node import Node, node_types
         taskobj = self.get_task_row(task)
         if taskobj.service_instance_id is not None:
@@ -131,23 +107,24 @@ class Tasks(object):
 
         # There's a specific node being looked at when calculating CT in most cases, hence the following
         if curr_node is None:
-            if node_type is None:
-                node_type = len(node_types) - 1
+            node_type = len(node_types) - 1
         else:
             node_type = Node.instance_map[curr_node].type
 
         json_time = taskobj.minimum_runtime / node_types[node_type][0]
 
         task_parents = self.get_task_row(task).parents
-        parent_max_ct = max([self.get_task_row(t)['completion time'] for t in task_parents]) if task_parents else 0
+        
+        #This calculates the latest time at which a predecessor completes and finishes the data transfer process taking into account the current node
+        parent_max_ct_dt = max([self.get_task_row(t)['completion time'] + self.dt(t, task, curr_node) for t in task_parents]) if task_parents else 0
+
 
         if not duplicated_tasks is None:
-            curr_node_earliest_finish_time = self.taskdf[self.taskdf.service_instance_id == curr_node]['completion_time']
+            curr_node_earliest_finish_time = max(self.taskdf[self.taskdf.service_instance_id == curr_node]['completion_time'])
             curr_node_earliest_finish_time += sum([self.get_task_row(t).minimum_runtime / node_types[node_type][0] for t in duplicated_tasks])
-            parent_max_ct = max(parent_max_ct, curr_node_earliest_finish_time)
+            parent_max_ct_dt = min(parent_max_ct_dt, curr_node_earliest_finish_time)
 
-        it = self.mitch_it(task, srv_id=curr_node, duplicated_tasks=duplicated_tasks)
-        return json_time + it + parent_max_ct
+        return json_time + parent_max_ct_dt
 
 
     ## TODO: finish this function
@@ -167,14 +144,18 @@ class Tasks(object):
 
     # Input Time -- the time it takes a task to read in its files
     # @task(string) - the task's name
-    def it(self, task, node_type=None):
-        taskobj = self.get_task_row(task)
-        srv_id = taskobj.service_instance_id # returns None if no service instance is found
+    def it(self, parent, task, srv_id=None):
+       #no read time if parent and task are on same node
+        parent_srv_id = self.get_task_row(parent)['service_instance_id']
+        if parent_srv_id == srv_id:
+            return 0
 
-        # Compute input size by summing the size of all inputs files
-        input_size = sum([f['size'] for f in taskobj.files if f['link'] == 'input'])
+        #get size of files to be read in from parent
+        parent_output_names = [f['name'] for f in self.get_task_row(parent)['files']]
+        task_input = self.get_task_row(task)['files']
+        input_size = sum(f['size'] for f in task_input if f['name'] in parent_output_names)
 
-        # Get the node the task is mapped to
+        #assume worst case scenario - we don't know what service instance the task is considering
         if srv_id is None:
             # No mapped node, assume the worst case node
             from Node import node_types
@@ -182,54 +163,13 @@ class Tasks(object):
 
             # input time is the size of the input divided by the worse case read time
             return input_size / wc_read
+
         else:
             from Node import Node
-            mapped_node = Node.instance_map[srv_id]
+            candidate_node = Node.instance_map[srv_id]
 
-            # Task has a mapped node, use it's actual speed data
-            return input_size / mapped_node.read_speed
-
-    def get_parent_nodes(self, task):
-        #return the unique parent nodes of the given task
-        parent_nodes = [parent['service_instance_id'] for parent in self.get_task_row(task)['parents']]
-        return list(set(parent_nodes)) #removes duplicate service_instance_id's
-
-
-    def get_parents_on_same_node(self, task, node_id):
-        #returns all the parents for a given task that are on the node being considered for teh current task
-        parents = [parent for parent in self.get_task_row(task)['parents'] 
-                    if self.get_task_row(parent)['service_instance_id']==node_id]
-        return parents
-
-
-    def get_parents_on_diff_node(self, task, node_id):
-        #returns all the parents for a given task that are not on the node being considered for the current task
-        parents = [parent for parent in self.get_task_row(task)['parents'] 
-                    if self.get_task_row(parent)['service_instance_id']!=node_id]
-        return parents
-
-
-    def mitch_it(self, task, srv_id=None, duplicated_tasks=None):
-        #assume worst case scenario - we don't know what service instance the task is considering
-        if srv_id == None:
-            return self.it(task)
-
-        #Otherwise need to consider specific SI, such as in ct calculation in line 6 of TaskSchedule() pseudocode.
-        # Compute input size by summing the size of all inputs files that come from parents on different service instances
-        diff_SI_parents = self.get_parents_on_diff_node(task, srv_id)
-
-        #if parent is duplicated then it's on the same node as the task at hand
-        if not duplicated_tasks is None:
-            diff_SI_parents = [t for t in diff_SI_parents if not t in duplicated_tasks]
-         
-        output_from_diff_SI = [f for parent in diff_SI_parents for f in self.get_task_row(parent)['files'] if f['name']=='output']
-        input_size = sum([f['size'] for f in taskobj.files if f['link'] == 'input'] and f['name'] in output_from_diff_SI)
-        
-        from Node import Node
-        candidate_node = Node.instance_map[srv_id]
-
-        # what's the read speed for the task assuming the passed in node is used
-        return input_size / candidate_node.read_speed
+            # calculate read time based on read speed of current node
+            return input_size / candidate_node.read_speed
 
 
     # Output Time -- the time it takes a task to write its output files
@@ -259,13 +199,11 @@ class Tasks(object):
     # Data Transfer Time (dt) from task p to task j
     # @task_p(string) - the task's name
     # @task_j(string) -    "       "
-    def dt(self, task_p, task_j):
-        # if tasks  and j are on the same service instance,
-        # the data transfer time is zero
-        if self.taskdf[self.taskdf['name'] == task_p]['service_instance_id'] == self.taskdf[self.taskdf['name'] == task_j]['service_instance_id']:
-            return 0
+    def dt(self, task_p, task_j, srv_id):
+        # Note that it() defaults to zero if parent and task on the same node
 
-        return ot(task_p) + it(task_j)
+        return self.ot(task_p) + self.it(task_p, task_j, srv_id)
+
 
     # Minimuim possible runtime of a task on the best possible node
     def mrt(self, task):
@@ -302,7 +240,11 @@ class Tasks(object):
             max_pct = max_pct + self.mrt(task_name)
             ST_task['predicated_completion_time'] = max_pct
         else:
-            ST_task['predicated_completion_time'] = crt() + self.it(task_name)
+            # Not using the it() function because I modified it to calculate based on a given parent and child task
+            from Node import node_types
+            wc_proc, wc_read, wc_write = node_types[len(node_types) - 1]       #assume worst possible read speed
+            read_time = sum([f['size'] for f in ST_task.files if f['link'] == 'input']) / wc_read
+            ST_task['predicated_completion_time'] = crt() + read_time
         return ST_task['predicated_completion_time']
 
 
