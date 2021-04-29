@@ -117,7 +117,7 @@ class Tasks(object):
     # given a task name string, decrements the 'unmapped_parent_count' field for all children taskss
     # @task(string) - the task's name
     def signal_children_si_mapped(self, task):
-        self.taskdf.loc[self.taskdf.parents.apply(lambda x: task in x), 'unmapped_parent_count']
+        self.taskdf.loc[self.taskdf.parents.apply(lambda x: task in x), 'unmapped_parent_count'] -= 1
 
     # Completion Time
     # @task(string) - the task's name
@@ -251,10 +251,11 @@ class Tasks(object):
 
         if len(ST_task.parents) != 0:
             max_pct = 0
-            for p in self.taskdf['parents']:
-                ct = self.taskdf[self.taskdf['parents'] == p]['completion_time'] #I feel like completion time gets calculated in the task_schedule function
-                dt = self.dt(p, task_name)
+            for p in ST_task.parents:
+                ct = self.ct(p)
+                dt = self.dt(task_name, p)
                 max_pct = ct + dt if ct + dt > max_pct else max_pct
+
             max_pct = max_pct + self.mrt(task_name)
             pct = max_pct
         else:

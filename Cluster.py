@@ -30,6 +30,7 @@ class Cluster(object):
         self.__tasks.add_tasks_from_wf(wf) # tasks from workflow added to task instance
 
         while self.__tasks.get_tasks(mapped=False).size > 0:
+
             unmapped_tasks = self.__tasks.get_tasks(mapped=False)
             task_names = unmapped_tasks[unmapped_tasks['unmapped_parent_count'] == 0].index.tolist()
             task_pct = [{"name": n, "pct": self.__tasks.calc_pct(n)} for n in task_names]
@@ -130,9 +131,11 @@ class Cluster(object):
                     # This is the amount of time the service instance will have to run the duplicated tasks
                     #   before it is able to run the actual task t_ij
                     pretask_duplication_overhead = 0
+
                     for t in temp_dt:
-                        runtime = t.minimum_runtime / service_instance.process_speed
-                        write_time = sum([f['size'] for f in t.files if f['link'] == 'output']) / service_instance.write_speed
+                        temp_obj = Tasks.get_task_row(t)
+                        runtime = temp_obj.minimum_runtime / service_instance.process_speed
+                        write_time = sum([f['size'] for f in temp_obj.files if f['link'] == 'output']) / service_instance.write_speed
                         pretask_duplication_overhead += runtime + write_time
 
                     # Update ct_tij by assuming that all the tasks in tempDT are duplicated to the current service instance
@@ -182,8 +185,9 @@ class Cluster(object):
                         #   before it is able to run the actual task t_ij
                         pretask_duplication_overhead = 0
                         for t in temp_dt:
-                            runtime = t.minimum_runtime / node_types[u][0]
-                            write_time = sum([f['size'] for f in t.files if f['link'] == 'output']) / node_types[u][2]
+                            temp_obj = Tasks.get_task_row(t)
+                            runtime = temp_obj.minimum_runtime / node_types[u][0]
+                            write_time = sum([f['size'] for f in temp_obj.files if f['link'] == 'output']) / node_types[u][2]
                             pretask_duplication_overhead += runtime + write_time
 
                         # Update ct_tij by assuming that all the tasks in tempDT are duplicated to the current service instance
