@@ -127,8 +127,16 @@ class Cluster(object):
                 if t_b is not None and t_b not in temp_dt and t_b not in WT_k:
                     temp_dt.append(t_b) # Pseudocode line 15
 
-                    # TODO - Pseudocode line 16
+                    # This is the amount of time the service instance will have to run the duplicated tasks
+                    #   before it is able to run the actual task t_ij
+                    pretask_duplication_overhead = 0
+                    for t in temp_dt:
+                        runtime = t.minimum_runtime / service_instance.process_speed
+                        write_time = sum([f['size'] for f in t.files if f['link'] == 'output']) / service_instance.write_speed
+                        pretask_duplication_overhead += runtime + write_time
+
                     # Update ct_tij by assuming that all the tasks in tempDT are duplicated to the current service instance
+                    ct_tij += pretask_duplication_overhead
 
                     # Pseudocode lines 17-18
                     for t_k in WT_k:
