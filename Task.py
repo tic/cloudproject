@@ -202,7 +202,9 @@ class Tasks(object):
     # @task_j(string) -    "       "
     def dt(self, task_p, task_j, srv_id):
         # Note that it() defaults to zero if parent and task on the same node
-
+        parent_srv_id = self.get_task_row(task_p)['service_instance_id']
+        if srv_id == parent_srv_id and not (parent_srv_id is None):
+            return 0
         return self.ot(task_p) + self.it(task_p, task_j, srv_id)
 
 
