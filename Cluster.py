@@ -35,11 +35,13 @@ class Cluster(object):
             task_pct = sorted(x, key=lambda x: x['pct'], reverse=True)
 
             for t in task_pct:
-                print (t["name"])
-                ##
-                # Add algorithm 2 Task Scheduler here
+
+                # Algorithm 2: Task Scheduler
+                self.task_schedule(t["name"])
 
                 # for each mapped task, updated all child task unmapped_parent_count fields
+                self.__tasks.signal_children_si_mapped(t["name"])
+
 
         await self.__start_workflow()
 

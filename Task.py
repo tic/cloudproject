@@ -89,8 +89,16 @@ class Tasks(object):
     def update_task_field(self, task, field, value):
         self.taskdf.loc[task, field] = value
 
+    # unmaps tasks to service instances of all incomplete tasks
+    # also resets the 'unmapped_parent_count' field to equal the parent count
     def unmap_service_instances(self):
-        self.taskdf[self.taskdf.complete == False]['service_instance_id'] = None
+        self.taskdf.loc[self.taskdf.complete == False, 'service_instance_id'] = None
+        self.taskdf.loc[self.taskdf.complete == False, 'unmapped_parent_count'] = self.taskdf.loc[self.taskdf.complete == False, 'parent_count']
+
+    # given a task name string, decrements the 'unmapped_parent_count' field for all children taskss
+    # @task(string) - the task's name
+    def signal_children_si_mapped(self, task):
+        self.taskdf.loc[self.taskdf.parents.apply(lambda x: task in x), 'unmapped_parent_count']
 
     # Completion Time
     # @task(string) - the task's name
