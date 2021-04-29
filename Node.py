@@ -33,11 +33,12 @@ class Node(object):
         # Add properties for the various node speeds
         if ntype < 0 or ntype > len(node_types) - 1:
             ntype = 0
-        pspeed, rspeed, wspeed = node_types[ntype]
+        node_data = node_types[ntype]
         self.ntype = ntype
-        self.process_speed = pspeed
-        self.read_speed = rspeed
-        self.write_speed = wspeed
+        self.process_speed = node_data[0]
+        self.read_speed = node_data[1]
+        self.write_speed = node_data[2]
+        self.cost = node_data[3]
 
 
     async def run(self, task):
