@@ -147,8 +147,9 @@ class Tasks(object):
     def it(self, parent, task, srv_id=None):
        #no read time if parent and task are on same node
         parent_srv_id = self.get_task_row(parent)['service_instance_id']
-        if parent_srv_id == srv_id:
-            return 0
+        if not parent_srv_id is None:
+            if parent_srv_id == srv_id:
+                return 0
 
         #get size of files to be read in from parent
         parent_output_names = [f['name'] for f in self.get_task_row(parent)['files']]
