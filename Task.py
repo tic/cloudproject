@@ -2,9 +2,11 @@
 from asyncio import sleep
 import pandas
 import json
+import random
+import string
 
 from time import time as now
-crt = lambda : round(now() * 1000)
+crt = lambda : round(now() * 1000) / 1000 # get current time to the nearest millisecond
 
 class Tasks(object):
 
@@ -87,7 +89,25 @@ class Tasks(object):
         return self.taskdf.loc[task].squeeze()
 
     def update_task_field(self, task, field, value):
-        self.taskdf.loc[task, field] = value
+        from collections.abc import Iterable
+
+        if isinstance(task, str):
+            self.taskdf.loc[task, field] = value
+        elif isinstance(task, Iterable):
+            self.taskdf.loc[self.taskdf.index.isin(task), field] = value
+
+    # duplicates a task. Appends a textstring to the name
+    # @task(string) - the task's name
+    def duplicate_task(self, task):
+        taskobj = self.get_task_row(task)
+
+        # string to append to the end of the task name. Randomly generated letters and number of size n
+        n = 5
+        append_string = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(n))
+        taskobj.name = taskobj.name + '_' + append_string
+        self.taskdf = self.taskdf.append(taskobj)
+
+        return taskobj.name
 
     # unmaps tasks to service instances of all incomplete tasks
     # also resets the 'unmapped_parent_count' field to equal the parent count
@@ -111,7 +131,6 @@ class Tasks(object):
         if node_type is None:
             node_type = len(node_types) - 1
 
-
         json_time = taskobj.minimum_runtime / node_types[node_type][0]
 
         task_parents = self.get_task_row(task).parents
@@ -129,19 +148,19 @@ class Tasks(object):
     # @task(string) - the task's name
     def lct(self, task):
 
-        taskobj = get_task_row(task)
+        taskobj = self.get_task_row(task)
 
         task_children = taskobj.children
 
         if task_children:
             return min(
-                max(self.ct(p) for p in get_task_row(child).parents) + self.dt(task, child) for child in task_children
+                max(self.ct(p) for p in self.get_task_row(child).parents) + self.dt(task, child) for child in task_children
             )
         else:
             return 0
 
     # Input Time -- the time it takes a task to read in its files
-    # @task(string) - the task's name
+    # @task(string/iterable) - task name or a list of task names
     def it(self, task):
         taskobj = self.get_task_row(task)
         srv_id = taskobj.service_instance_id # returns None if no service instance is found
@@ -254,12 +273,12 @@ class Tasks(object):
         if node_type is None or node_type < 0 or node_type >= len(node_types):
             raise Exception('pc() called with invalid node type: ' + str(node_type))
 
-        price_per_hr = node_types[node_type][3]
+        process_speed, read_speed, write_speed, price_per_hr = node_types[node_type]
         taskobj = self.get_task_row(task)
 
         # All in seconds
         read_time = sum([f['size'] for f in taskobj.files if f['link'] == 'input'])
-        runtime = task.minimum_runtime / proc_speed
+        runtime = taskobj.minimum_runtime / process_speed
         write_time = sum([f['size'] for f in taskobj.files if f['link'] == 'output'])
 
         return (read_time + runtime + write_time) / 3600.0 * price_per_hr

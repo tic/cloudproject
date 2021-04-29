@@ -4,8 +4,8 @@ import asyncio
 from time import sleep
 
 class Cluster(object):
-    def __init__(self, nodes, process_speed=1):
-        self.__nodes = list(map(lambda _ : Node(process_speed=process_speed), [0] * nodes))
+    def __init__(self, nodes):
+        self.__nodes = list(map(lambda _ : Node(), [0] * nodes))
         self.__queued_workflows = []
         self.__tasks = Tasks()
         self.__task_queue = []
@@ -32,10 +32,9 @@ class Cluster(object):
             unmapped_tasks = self.__tasks.get_tasks(mapped=False)
             task_names = unmapped_tasks[unmapped_tasks['unmapped_parent_count'] == 0].index.tolist()
             task_pct = [{"name": n, "pct": self.__tasks.calc_pct(n)} for n in task_names]
-            task_pct = sorted(x, key=lambda x: x['pct'], reverse=True)
+            task_pct = sorted(task_pct, key=lambda x: x['pct'], reverse=True)
 
             for t in task_pct:
-
                 # Algorithm 2: Task Scheduler
                 self.task_schedule(t["name"])
 
@@ -123,7 +122,7 @@ class Cluster(object):
                         t_b = t_ip
 
                 # Pseudocode line 14
-                WT_k = Tasks.taskdf[Tasks.taskdf.service_instance_id == service_instance.id]['name'] # this is supposed to get a list of the names of tasks which have been mapped to this service instance
+                WT_k = Tasks.taskdf[Tasks.taskdf.service_instance_id == service_instance.id].index # this is supposed to get a list of the names of tasks which have been mapped to this service instance
                 if t_b is not None and t_b not in temp_dt and t_b not in WT_k:
                     temp_dt.append(t_b) # Pseudocode line 15
 
@@ -143,6 +142,7 @@ class Cluster(object):
                         if Tasks.ct(t_k) > Tasks.lct(t_k): break
 
                 else: break # Pseudocode lines 19-20
+
 
         if tag == False: # Pseudocode line 21
             u_star = None # Pseudocode line 22
@@ -177,20 +177,36 @@ class Cluster(object):
                         temp_dt.append(t_b) # Pseudocode line 33
 
                         # Pseudocode line 34
+                        # This is the amount of time the service instance will have to run the duplicated tasks
+                        #   before it is able to run the actual task t_ij
+                        pretask_duplication_overhead = 0
+                        for t in temp_dt:
+                            runtime = t.minimum_runtime / node_types[u][0]
+                            write_time = sum([f['size'] for f in t.files if f['link'] == 'output']) / node_types[u][2]
+                            pretask_duplication_overhead += runtime + write_time
+
+                        # Update ct_tij by assuming that all the tasks in tempDT are duplicated to the current service instance
+                        ct_tij += pretask_duplication_overhead
+
                     else: break # Pseudocode lines 35-36
 
             if u_star is not None: # Pseudocode line 37
                 pass
                 # Pseudocode line 38
                 # Lease a new service instance, SI_uk, with type u_star
-                # selected_service_instance = SI_uk
+
+                SI_uk = Node(u_star)
+                selected_service_instance = SI_uk
 
                 # Pseudocode line 39
                 # Add SI_uk to siList (the list of service instances)
-                # siList.append(SI_uk) # Our version of this isn't that simple
+                self.__nodes.append(selected_service_instance)
 
-            # Pseudocode line 40
-            # Map all the tasks in dup_tasks to selected_service_instance
-            # Pseudocode line 41
-            # Map argument "task" to selected_service_instance
-            # argyemtn
+        # Pseudocode line 40
+        # Map all the tasks in dup_tasks to selected_service_instance
+        dup_task_new_names = [Tasks.duplicate_task(d) for d in dup_tasks]
+        Tasks.update_task_field(dup_task_new_names, 'service_instance_id', selected_service_instance.getID())
+        # Pseudocode line 41
+        # Map argument "task" to selected_service_instance
+        Tasks.update_task_field(task, 'service_instance_id', selected_service_instance.getID())
+            
