@@ -78,7 +78,7 @@ class Tasks(object):
             rdf = rdf[rdf['service_instance_id'] != None]
         elif mapped == False:
             rdf = rdf[rdf['service_instance_id'] == None]
-        rdf = self.taskdf
+        #rdf = self.taskdf - I think this was a typo
 
         return rdf
 
@@ -141,8 +141,9 @@ class Tasks(object):
         if duplicate:
             return json_time + parent_max_ct
 
-        it = self.it(task)
+        it = self.it(task, node_type)
         return json_time + it + parent_max_ct
+
 
     ## TODO: finish this function
     # @task(string) - the task's name
@@ -154,14 +155,14 @@ class Tasks(object):
 
         if task_children:
             return min(
-                max(self.ct(p) for p in self.get_task_row(child).parents) + self.dt(task, child) for child in task_children
+                max(self.ct(p) for p in self.get_task_row(child).parents) - self.dt(task, child) for child in task_children
             )
         else:
             return 0
 
     # Input Time -- the time it takes a task to read in its files
-    # @task(string/iterable) - task name or a list of task names
-    def it(self, task):
+    # @task(string) - task name or a list of task names
+    def it(self, task, node_type=None):
         taskobj = self.get_task_row(task)
         srv_id = taskobj.service_instance_id # returns None if no service instance is found
 
@@ -182,6 +183,7 @@ class Tasks(object):
 
             # Task has a mapped node, use it's actual speed data
             return input_size / mapped_node.read_speed
+
 
     # Output Time -- the time it takes a task to write its output files
     # @task(string) - the task's name
@@ -250,10 +252,9 @@ class Tasks(object):
 
         if len(ST_task.parents) != 0:
             max_pct = 0
-            for p in ST_task.parents:
-                #ct = self.get_task_row(p)['completion_time'] #I feel like completion time gets calculated in the task_schedule function
-                ct = self.ct(p)
-                dt = self.dt(task_name, p)
+            for p in self.taskdf['parents']:
+                ct = self.taskdf[self.taskdf['parents'] == p]['completion_time'] #I feel like completion time gets calculated in the task_schedule function
+                dt = self.dt(p, task_name)
                 max_pct = ct + dt if ct + dt > max_pct else max_pct
             max_pct = max_pct + self.mrt(task_name)
             pct = max_pct
@@ -262,10 +263,6 @@ class Tasks(object):
         self.update_task_field(task_name, 'predicated_completion_time', pct)
         return pct
 
-    def calc_ct(self, task_name):
-        # dynamically calculate the completion_time of a given task
-        # task_name is a string that can be queried in dataframe
-        return ct
 
     # "predicted cost"?
     def pc(self, task, node_type=None):
@@ -282,3 +279,8 @@ class Tasks(object):
         write_time = sum([f['size'] for f in taskobj.files if f['link'] == 'output'])
 
         return (read_time + runtime + write_time) / 3600.0 * price_per_hr
+
+    #Quick checksum to run at the end to ensure all tasks were processed
+    def checksum(self):
+        rdf = self.taskdf 
+        return (rdf[rdf.complete==True].complete == rdf.complete)

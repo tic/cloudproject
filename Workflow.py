@@ -32,7 +32,7 @@ class Workflow(object):
         return f'WF obj | {self.name}'
 
     def tasks(self):
-        from Task import Task
+        from Task import Tasks
         return list(map(lambda job : Task(job), self.wf['workflow']['jobs']))
 
     def get_task_json(self):

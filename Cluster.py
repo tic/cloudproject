@@ -13,7 +13,8 @@ class Cluster(object):
 
     # Get available service instances
     def get_si_list(self):
-        return list(filter(lambda node : not node.working, self.__nodes))
+        return self.__nodes #This makes more sense w/in context of TaskSchedule algorithm
+        #return list(filter(lambda node : not node.working, self.__nodes))
 
     async def submit_workflow(self, wf):
         from Workflow import Workflow
