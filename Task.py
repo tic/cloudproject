@@ -130,13 +130,13 @@ class Tasks(object):
     # @task(string) - the task's name
     def lct(self, task):
 
-        taskobj = get_task_row(task)
+        taskobj = self.get_task_row(task)
 
         task_children = taskobj.children
 
         if task_children:
             return min(
-                max(self.ct(p) for p in get_task_row(child).parents) - self.dt(task, child) for child in task_children
+                max(self.ct(p) for p in self.get_task_row(child).parents) - self.dt(task, child) for child in task_children
             )
         else:
             return 0
@@ -244,10 +244,6 @@ class Tasks(object):
         self.update_task_field(task_name, 'predicated_completion_time', pct)
         return pct
 
-    def calc_ct(self, task_name):
-        # dynamically calculate the completion_time of a given task
-        # task_name is a string that can be queried in dataframe
-        return ct
 
     # "predicted cost"?
     def pc(self, task, node_type=None):
@@ -264,3 +260,8 @@ class Tasks(object):
         write_time = sum([f['size'] for f in taskobj.files if f['link'] == 'output'])
 
         return (read_time + runtime + write_time) / 3600.0 * price_per_hr
+
+    #Quick checksum to run at the end to ensure all tasks were processed
+    def checksum(self):
+        rdf = self.taskdf 
+        return (rdf[rdf.complete==True].complete == rdf.complete)
