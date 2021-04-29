@@ -98,8 +98,8 @@ class Cluster(object):
             temp_dt = [] # Pseudocode line 5
 
             # Pseudocode line 6
-            ct_tij = Tasks.ct(task, service_instance.type)
-            pc_tij = Tasks.pc(task, service_instance.type) # TODO: Tasks class does not have a pc method.
+            ct_tij = Tasks.ct(task, service_instance.ntype)
+            pc_tij = Tasks.pc(task, service_instance.ntype) # TODO: Tasks class does not have a pc method.
 
             while True: # Pseudocode line 7
                 if ct_tij < min_completion_time: # Pseudocode line 8

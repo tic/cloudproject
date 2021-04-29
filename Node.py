@@ -4,12 +4,19 @@ KBs = lambda x : x * 1024
 MBs = lambda x : x * KBs(1024)
 
 # Ordered from best to worst
-# Format: (process speed, read speed, write speed)
+# Format: (process speed, read speed, write speed, price)
+
+# Node types are, in order:
+# n4.2xlarge, n4.xlarge, n4.large, n4.small
+# As loosely defined on p.139 of the paper.
+# Processing speed is the number of CPUs times the base processing speed.
+base_proc_speed = 10
+base_io_speed = (MBs(100), MBs(75))
 node_types = [
-    (50, MBs(200), MBs(150)),
-    (15, MBs(150), MBs(110)),
-    (3, MBs(100), MBs(70)),
-    (1, MBs(50), MBs(30))
+    (base_proc_speed * 8, *[1.9*x for x in base_io_speed], 0.336),
+    (base_proc_speed * 4, *[1.5*x for x in base_io_speed], 0.168),
+    (base_proc_speed * 2, *[1.2*x for x in base_io_speed], 0.047),
+    (base_proc_speed * 1, *[1.0*x for x in base_io_speed], 0.023),
 ]
 
 class Node(object):
@@ -17,20 +24,21 @@ class Node(object):
     instance_map = {}
 
     # @type - integer in [ 0, len(node_types) )
-    def __init__(self, process_speed, type=0):
+    def __init__(self, process_speed, ntype=0):
         self.working = False
         self.__id = Node.id
         Node.id += 1
         Node.instance_map[self.__id] = self
 
         # Add properties for the various node speeds
-        if type < 0 or type > len(node_types) - 1:
-            type = 0
-        pspeed, rspeed, wspeed = node_types[type]
-        self.type = type
-        self.process_speed = pspeed
-        self.read_speed = rspeed
-        self.write_speed = wspeed
+        if ntype < 0 or ntype > len(node_types) - 1:
+            ntype = 0
+        node_data = node_types[ntype]
+        self.ntype = ntype
+        self.process_speed = node_data[0]
+        self.read_speed = node_data[1]
+        self.write_speed = node_data[2]
+        self.cost = node_data[3]
 
 
     async def run(self, task):

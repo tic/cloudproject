@@ -68,7 +68,7 @@ class Tasks(object):
     def get_tasks(self, completed=False, mapped=None):
 
         rdf = self.taskdf
- 
+
         if completed != None:
             rdf = rdf[rdf['complete'] == completed]
 
@@ -106,7 +106,7 @@ class Tasks(object):
         from Node import Node, node_types
         taskobj = self.get_task_row(task)
         if taskobj.service_instance_id is not None:
-            node_type = Node.instance_map[taskobj.service_instance_id].type
+            node_type = Node.instance_map[taskobj.service_instance_id].ntype
 
         if node_type is None:
             node_type = len(node_types) - 1
@@ -154,10 +154,10 @@ class Tasks(object):
         if srv_id is None:
             # No mapped node, assume the worst case node
             from Node import node_types
-            wc_proc, wc_read, wc_write = node_types[len(node_types) - 1]
+            node_data = node_types[len(node_types) - 1]
 
             # input time is the size of the input divided by the worse case read time
-            return input_size / wc_read
+            return input_size / node_data[2]
         else:
             from Node import Node
             mapped_node = Node.instance_map[srv_id]
@@ -179,10 +179,10 @@ class Tasks(object):
         if srv_id is None:
             # No mapped node, assume the worst case node
             from Node import node_types
-            wc_proc, wc_read, wc_write = node_types[len(node_types) - 1]
+            node_data = node_types[len(node_types) - 1]
 
             # input time is the size of the input divided by the worse case read time
-            return output_size / wc_read
+            return output_size / node_data[1]
         else:
             from Node import Node
             mapped_node = Node.instance_map[srv_id]
@@ -208,18 +208,18 @@ class Tasks(object):
         taskobj = self.get_task_row(task)
 
         from Node import node_types
-        best_proc_speed, rs, ws = node_types[0]
+        node_data = node_types[0]
 
         # Runtime is the task's runtime divided by the node's processing speed
-        return taskobj.minimum_runtime / best_proc_speed
+        return taskobj.minimum_runtime / node_data[0]
 
     # Runtime of a task on a particular node type (service instance type)
     def rt(self, task, node_type):
         taskobj = self.get_task_row(task)
         try:
             from Node import node_types
-            proc_speed, rs, ws = node_types[node_type]
-            return taskobj.minimum_runtime / proc_speed
+            node_data = node_types[node_type]
+            return taskobj.minimum_runtime / node_data[0]
         except Exception:
             raise Exception('invalid node type passed to rt()')
 
@@ -244,8 +244,23 @@ class Tasks(object):
         self.update_task_field(task_name, 'predicated_completion_time', pct)
         return pct
 
-
     def calc_ct(self, task_name):
         # dynamically calculate the completion_time of a given task
         # task_name is a string that can be queried in dataframe
         return ct
+
+    # "predicted cost"?
+    def pc(self, task, node_type=None):
+        from Node import node_types
+        if node_type is None or node_type < 0 or node_type >= len(node_types):
+            raise Exception('pc() called with invalid node type: ' + str(node_type))
+
+        price_per_hr = node_types[node_type][3]
+        taskobj = self.get_task_row(task)
+
+        # All in seconds
+        read_time = sum([f['size'] for f in taskobj.files if f['link'] == 'input'])
+        runtime = task.minimum_runtime / proc_speed
+        write_time = sum([f['size'] for f in taskobj.files if f['link'] == 'output'])
+
+        return (read_time + runtime + write_time) / 3600.0 * price_per_hr
