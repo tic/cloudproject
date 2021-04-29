@@ -106,7 +106,7 @@ class Tasks(object):
         from Node import Node, node_types
         taskobj = self.get_task_row(task)
         if taskobj.service_instance_id is not None:
-            node_type = Node.instance_map[taskobj.service_instance_id].type
+            node_type = Node.instance_map[taskobj.service_instance_id].ntype
 
         if node_type is None:
             node_type = len(node_types) - 1

@@ -24,17 +24,17 @@ class Node(object):
     instance_map = {}
 
     # @type - integer in [ 0, len(node_types) )
-    def __init__(self, process_speed, type=0):
+    def __init__(self, process_speed, ntype=0):
         self.working = False
         self.__id = Node.id
         Node.id += 1
         Node.instance_map[self.__id] = self
 
         # Add properties for the various node speeds
-        if type < 0 or type > len(node_types) - 1:
-            type = 0
-        pspeed, rspeed, wspeed = node_types[type]
-        self.type = type
+        if ntype < 0 or ntype > len(node_types) - 1:
+            ntype = 0
+        pspeed, rspeed, wspeed = node_types[ntype]
+        self.ntype = ntype
         self.process_speed = pspeed
         self.read_speed = rspeed
         self.write_speed = wspeed
