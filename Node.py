@@ -27,6 +27,7 @@ class Node(object):
         if type < 0 or type > len(node_types) - 1:
             type = 0
         pspeed, rspeed, wspeed = node_types[type]
+        self.type = type
         self.process_speed = pspeed
         self.read_speed = rspeed
         self.write_speed = wspeed

@@ -95,17 +95,27 @@ class Tasks(object):
 
     # Completion Time
     # @task(string) - the task's name
-    def ct(self, task):
-
+    def ct(self, task, node_type=None, duplicate=False):
+        from Node import Node, node_types
         taskobj = self.get_task_row(task)
+        if taskobj.service_instance_id is not None:
+            node_type = Node.instance_map[taskobj.service_instance_id].type
 
-        json_time = taskobj.minimum_runtime
-        it = self.it(task)
+        if node_type is None:
+            node_type = len(node_types) - 1
+
+
+        json_time = taskobj.minimum_runtime / node_types[node_type][0]
 
         task_parents = self.get_task_row(task).parents
         #TODO: possible performance issues due to recursive call to ct. Should we store this data in the dataframe?
         parent_max_ct = max([self.ct(t) for t in task_parents]) if task_parents else 0
 
+        # If a task is being duplicated, the input time is voided
+        if duplicate:
+            return json_time + parent_max_ct
+
+        it = self.it(task)
         return json_time + it + parent_max_ct
 
     ## TODO: finish this function

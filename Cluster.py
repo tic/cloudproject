@@ -13,7 +13,7 @@ class Cluster(object):
 
     # Get available service instances
     def get_si_list(self):
-        return list(filter(lambda node : not node.working, self._nodes))
+        return list(filter(lambda node : not node.working, self.__nodes))
 
     async def submit_workflow(self, wf):
         from Workflow import Workflow
@@ -87,4 +87,61 @@ class Cluster(object):
         min_cost = float('inf')
 
         # Pseudocode line 3
-        # self.__tasks
+        Tasks = self.__tasks
+        taskobj = Tasks.get_task_row(task)
+        lct_tij = Tasks.lct(task)
+
+        for service_instance in self.get_si_list(): # Pseudocode line 4
+            temp_dt = [] # Pseudocode line 5
+
+            # Pseudocode line 6
+            ct_tij = Tasks.ct(task, service_instance.type)
+            pc_tij = float('inf')
+            # pc = Tasks.pc(task, service_instance.type) # TODO: Tasks class does not have a pc method.
+
+            while True: # Pseudocode line 7
+                if ct_tij < min_completion_time: # Pseudocode line 8
+                    # Pseudocode lines 9-10
+                    selected_service_instance = service_instance
+                    min_completion_time = max(ct_tij, lct_tij)
+                    dup_tasks = list(temp_dt)
+
+                    if ct_tij <= lct_tij and pc_tij < min_cost: # Pseudocode line 11
+                        # Pseudocode line 12
+                        min_cost = pc_tij
+                        tag = True
+                        break
+
+                # Pseudocode line 13
+                tb_min = float('inf')
+                t_b = None
+                for t_ip in taskobj.parents:
+                    arg = Tasks.ct(t_ip) + Tasks.dt(t_ip, task)
+                    if arg < tb_min:
+                        tb_min = arg
+                        t_b = t_ip
+
+                # Pseudocode line 14
+                WT_k = Tasks.taskdf[Tasks.taskdf.service_instance_id == service_instance.id]['name'] # this is supposed to get a list of the names of tasks which have been mapped to this service instance
+                if t_b is not None and t_b not in temp_dt and t_b not in WT_k:
+                    temp_dt.append(t_b) # Pseudocode line 15
+
+                    # This is the amount of time the service instance will have to run the duplicated tasks
+                    #   before it is able to run the actual task t_ij
+                    pretask_duplication_overhead = 0
+                    for t in temp_dt:
+                        runtime = t.minimum_runtime / service_instance.process_speed
+                        write_time = sum([f['size'] for f in t.files if f['link'] == 'output']) / service_instance.write_speed
+                        pretask_duplication_overhead += runtime + write_time
+
+                    # Update ct_tij by assuming that all the tasks in tempDT are duplicated to the current service instance
+                    ct_tij += pretask_duplication_overhead
+
+                    # Pseudocode lines 17-18
+                    for t_k in WT_k:
+                        if Tasks.ct(t_k) > Tasks.lct(t_k): break
+
+                else: break # Pseudocode lines 19-20
+
+        if tag == False: # Pseudocode line 21
+            u_star = None
