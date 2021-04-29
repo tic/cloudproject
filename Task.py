@@ -76,7 +76,7 @@ class Tasks(object):
             rdf = rdf[rdf['service_instance_id'] != None]
         elif mapped == False:
             rdf = rdf[rdf['service_instance_id'] == None]
-        rdf = self.taskdf
+        #rdf = self.taskdf - I think this was a typo
 
         return rdf
 
@@ -136,7 +136,7 @@ class Tasks(object):
 
         if task_children:
             return min(
-                max(self.ct(p) for p in get_task_row(child).parents) + self.dt(task, child) for child in task_children
+                max(self.ct(p) for p in get_task_row(child).parents) - self.dt(task, child) for child in task_children
             )
         else:
             return 0
