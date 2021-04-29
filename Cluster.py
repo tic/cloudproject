@@ -98,8 +98,7 @@ class Cluster(object):
 
             # Pseudocode line 6
             ct_tij = Tasks.ct(task, service_instance.type)
-            pc_tij = float('inf')
-            # pc = Tasks.pc(task, service_instance.type) # TODO: Tasks class does not have a pc method.
+            pc_tij = Tasks.pc(task, service_instance.type) # TODO: Tasks class does not have a pc method.
 
             while True: # Pseudocode line 7
                 if ct_tij < min_completion_time: # Pseudocode line 8
@@ -146,4 +145,52 @@ class Cluster(object):
                 else: break # Pseudocode lines 19-20
 
         if tag == False: # Pseudocode line 21
-            u_star = None
+            u_star = None # Pseudocode line 22
+
+            # Pseudocode line 23
+            from Node import node_types
+            for u in range(len(node_types)):
+                temp_dt = [] # Pseudocode line 24
+
+                # Pseudocode line 25
+                ct_tij = Tasks.ct(task, node_type=u)
+                pc_tij = Tasks.pc(task, node_type=u)
+
+                while True: # Pseudocode line 26
+                    if ct_tij < min_cost: # Pseudocode line 27
+
+                        # Pseudocode line 28
+                        u_star = u
+                        min_cost = max(ct_tij, lct_tij)
+                        dup_tasks = list(temp_dt)
+
+                        if ct_tij <= lct_tij and pc_tij < min_cost: # Pseudocode line 29
+
+                            # Pseudocode line 30
+                            min_cost = pc_tij
+                            break
+
+                    # Pseudocode line 31
+                    t_b = None # TODO
+
+                    if t_b is not None and t_b not in temp_dt: # Pseudocode line 32
+                        temp_dt.append(t_b) # Pseudocode line 33
+
+                        # Pseudocode line 34
+                    else: break # Pseudocode lines 35-36
+
+            if u_star is not None: # Pseudocode line 37
+                pass
+                # Pseudocode line 38
+                # Lease a new service instance, SI_uk, with type u_star
+                # selected_service_instance = SI_uk
+
+                # Pseudocode line 39
+                # Add SI_uk to siList (the list of service instances)
+                # siList.append(SI_uk) # Our version of this isn't that simple
+
+            # Pseudocode line 40
+            # Map all the tasks in dup_tasks to selected_service_instance
+            # Pseudocode line 41
+            # Map argument "task" to selected_service_instance
+            # argyemtn
