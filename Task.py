@@ -65,21 +65,20 @@ class Tasks(object):
                 } for p in task['parents']
             ])
 
-
     def get_tasks(self, completed=False, mapped=None):
 
-        retdf = self.taskdf
+        rdf = self.taskdf
  
         if completed != None:
-            retdf = retdf[retdf['complete'] == completed]
+            rdf = rdf[rdf['complete'] == completed]
 
         if mapped == True:
-            retdf = retdf[retdf['service_instance_id'] != None]
+            rdf = rdf[rdf['service_instance_id'] != None]
         elif mapped == False:
-            retdf = retdf[retdf['service_instance_id'] == None]
-        retdf = self.taskdf
+            rdf = rdf[rdf['service_instance_id'] == None]
+        rdf = self.taskdf
 
-        return retdf
+        return rdf
 
     # returns a pd series representation of single task
     # @task(string) - the task's name
@@ -187,10 +186,12 @@ class Tasks(object):
     def dt(self, task_p, task_j):
         # if tasks  and j are on the same service instance,
         # the data transfer time is zero
-        if self.taskdf[self.taskdf['name'] == task_p]['service_instance_id'] == self.taskdf[self.taskdf['name'] == task_j]['service_instance_id']:
+        task_p_obj = self.get_task_row(task_p)
+        task_j_obj = self.get_task_row(task_j)
+        if task_p_obj.service_instance_id == task_j_obj.service_instance_id:
             return 0
 
-        return ot(task_p) + it(task_j)
+        return self.ot(task_p) + self.it(task_j)
 
     # Minimuim possible runtime of a task on the best possible node
     def mrt(self, task):
@@ -217,20 +218,21 @@ class Tasks(object):
         # calculating pct is required per line 9 of algorithm 1
         # pct is only calculated for the tasks for which all their predecessors have been mapped
         # task_name is a string which is used to query the pandas dataframe
-        
+
         ST_task =  self.get_task_row(task_name)
 
-        if len(ST_task['parents']) != 0:
+        if len(ST_task.parents) != 0:
             max_pct = 0
             for p in ST_task.parents:
-                ct = self.get_task_row(p)['completion_time'] #I feel like completion time gets calculated in the task_schedule function
-                dt = self.dt(taskname, p)
+                #ct = self.get_task_row(p)['completion_time'] #I feel like completion time gets calculated in the task_schedule function
+                ct = self.ct(p)
+                dt = self.dt(task_name, p)
                 max_pct = ct + dt if ct + dt > max_pct else max_pct
             max_pct = max_pct + self.mrt(task_name)
             pct = max_pct
         else:
             pct = crt() + self.it(task_name)
-        self.taskdf.update_task_field(task_name, 'predicated_completion_time', pct)
+        self.update_task_field(task_name, 'predicated_completion_time', pct)
         return pct
 
 
