@@ -3,7 +3,7 @@ from Workflow import Workflow
 
 async def main():
     # create a compute cluster with 5 nodes
-    cloud = Cluster(15, process_speed=25)
+    cloud = Cluster(15)
     test#1
     # generate a workflow
     wf = Workflow('test workflow')
