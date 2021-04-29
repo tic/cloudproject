@@ -77,8 +77,7 @@ class Tasks(object):
         if mapped == True:
             rdf = rdf[rdf['service_instance_id'] != None]
         elif mapped == False:
-            rdf = rdf[rdf['service_instance_id'] == None]
-        #rdf = self.taskdf - I think this was a typo
+            rdf = rdf[rdf['service_instance_id'].isnull()]
 
         return rdf
 
