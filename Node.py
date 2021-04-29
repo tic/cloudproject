@@ -4,12 +4,19 @@ KBs = lambda x : x * 1024
 MBs = lambda x : x * KBs(1024)
 
 # Ordered from best to worst
-# Format: (process speed, read speed, write speed)
+# Format: (process speed, read speed, write speed, price)
+
+# Node types are, in order:
+# n4.2xlarge, n4.xlarge, n4.large, n4.small
+# As loosely defined on p.139 of the paper.
+# Processing speed is the number of CPUs times the base processing speed.
+base_proc_speed = 10
+base_io_speed = (MBs(100), MBs(75))
 node_types = [
-    (50, MBs(200), MBs(150)),
-    (15, MBs(150), MBs(110)),
-    (3, MBs(100), MBs(70)),
-    (1, MBs(50), MBs(30))
+    (base_proc_speed * 8, *[1.9*x for x in base_io_speed], 0.336),
+    (base_proc_speed * 4, *[1.5*x for x in base_io_speed], 0.168),
+    (base_proc_speed * 2, *[1.2*x for x in base_io_speed], 0.047),
+    (base_proc_speed * 1, *[1.0*x for x in base_io_speed], 0.023),
 ]
 
 class Node(object):
