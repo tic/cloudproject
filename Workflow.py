@@ -27,6 +27,8 @@ class Workflow(object):
 
         self.wf = wf
         self.name = name
+        from Task import crt
+        self.arrival_time = crt()
 
     def __str__(self):
         return f'WF obj | {self.name}'

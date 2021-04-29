@@ -261,7 +261,10 @@ class Tasks(object):
 
         return (read_time + runtime + write_time) / 3600.0 * price_per_hr
 
+
     #Quick checksum to run at the end to ensure all tasks were processed
-    def checksum(self):
+    def verify_workflow_completion(self):
         rdf = self.taskdf 
+        #if any tasks have not been completed yet, then the below relationship does not hold
         return (rdf[rdf.complete==True].complete == rdf.complete)
+

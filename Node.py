@@ -39,6 +39,9 @@ class Node(object):
         self.read_speed = node_data[1]
         self.write_speed = node_data[2]
         self.cost = node_data[3]
+        self.provisioned_time = 0 # This is the amount of time the node is provisioned for - used in TC metric calculation
+        self.execution_time = 0  
+
 
 
     async def run(self, task):
