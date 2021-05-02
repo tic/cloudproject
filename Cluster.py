@@ -42,6 +42,7 @@ class Cluster(object):
                 from Workflow import Workflow
                 try:
                     n = 5
+                    import random
                     random_wf_name = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(n))
                     wf = Workflow(random_wf_name, json.loads(data[:-1]))
                 except Exception:
