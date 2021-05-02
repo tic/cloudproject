@@ -117,10 +117,10 @@ class Tasks(object):
     # Get next task for a particular service instance
     # Returns only the name of the next task
     def get_next_task(self, si):
-        matches = self.taskdf[self.tasksdf.service_instance_id == si]
+        matches = self.taskdf[self.taskdf.service_instance_id == si]
         if len(matches) == 0:
             return None
-        return matches[0].squeeze().name
+        return matches.head(1).squeeze().name
 
     # given a task name string, decrements the 'unmapped_parent_count' field for all children taskss
     # @task(string) - the task's name

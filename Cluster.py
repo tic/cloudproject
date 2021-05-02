@@ -98,7 +98,7 @@ class Cluster(object):
                     task_pct = [{"name": n, "pct": self.__tasks.calc_pct(n)} for n in task_names]
                     task_pct = sorted(task_pct, key=lambda x: x['pct'], reverse=True)
 
-                    ntasks = len(task_pct)
+                    ntasks = len(task_pct) - 1
                     for i, t in enumerate(task_pct):
                         # Algorithm 2: Task Scheduler
                         print(f'Scheduling task {i}/{ntasks}')
