@@ -172,7 +172,13 @@ class Cluster(object):
                             break
 
                     # Pseudocode line 31
-                    t_b = None # TODO
+                    t_b = None
+                    tb_min = float('inf')
+                    for t_ip in taskobj.parents:
+                        arg = Tasks.ct(t_ip) + Tasks.dt(t_ip, task)
+                        if arg < tb_min:
+                            tb_min = arg
+                            t_b = t_ip
 
                     if t_b is not None and t_b not in temp_dt: # Pseudocode line 32
                         temp_dt.append(t_b) # Pseudocode line 33
