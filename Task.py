@@ -4,7 +4,7 @@ import pandas
 import json
 import random
 import string
-import Math
+import math
 
 from time import time as now
 crt = lambda : round(now() * 1000) / 1000 # get current time to the nearest millisecond
@@ -135,7 +135,7 @@ class Tasks(object):
         taskobj = self.get_task_row(task)
 
         # if completion_time is already calculated within the taskdf, return that value
-        if (taskobj.completion_time is not None) and (not Math.isnan(taskobj.completion_time)):
+        if (taskobj.completion_time is not None) and (not math.isnan(taskobj.completion_time)):
             return taskobj.completion_time
 
         # calculate completion_time if it hasn't already been calculated

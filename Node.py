@@ -51,8 +51,8 @@ class Node(object):
             if next_task is not None:
                 # Simulate the task
                 # Total execution time is the input time, output time, and run time
-                print(f'running task {next_task}')
                 task_execution_time = self.task_manager.it(next_task) + self.task_manager.ot(next_task) + self.task_manager.rt(next_task, self.ntype)
+                print(f'node#{self.__id} running task {next_task} ({task_execution_time}s)')
                 await asyncio.sleep(task_execution_time)
 
                 # Update task completion time
@@ -60,6 +60,7 @@ class Node(object):
 
                 # Update node execution time metric
                 self.execution_time += task_execution_time
+                print(f'node#{self.__id} finished {next_task}')
             else:
                 # Node has not been assigned a task.
                 # Allow other things to run

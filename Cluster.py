@@ -250,4 +250,5 @@ class Cluster(object):
         Tasks.update_task_field(dup_task_new_names, 'service_instance_id', selected_service_instance.getID())
         # Pseudocode line 41
         # Map argument "task" to selected_service_instance
+        print(f'mapping {task} to {selected_service_instance.getID()}')
         Tasks.update_task_field(task, 'service_instance_id', selected_service_instance.getID())
