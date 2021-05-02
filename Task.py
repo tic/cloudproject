@@ -2,9 +2,11 @@
 from asyncio import sleep
 import pandas
 import json
+import random
+import string
 
 from time import time as now
-crt = lambda : round(now() * 1000)
+crt = lambda : round(now() * 1000) / 1000 # get current time to the nearest millisecond
 
 class Tasks(object):
 
@@ -75,8 +77,7 @@ class Tasks(object):
         if mapped == True:
             rdf = rdf[rdf['service_instance_id'] != None]
         elif mapped == False:
-            rdf = rdf[rdf['service_instance_id'] == None]
-        #rdf = self.taskdf - I think this was a typo
+            rdf = rdf[rdf['service_instance_id'].isnull()]
 
         return rdf
 
@@ -87,7 +88,25 @@ class Tasks(object):
         return self.taskdf.loc[task].squeeze()
 
     def update_task_field(self, task, field, value):
-        self.taskdf.loc[task, field] = value
+        from collections.abc import Iterable
+
+        if isinstance(task, str):
+            self.taskdf.loc[task, field] = value
+        elif isinstance(task, Iterable):
+            self.taskdf.loc[self.taskdf.index.isin(task), field] = value
+
+    # duplicates a task. Appends a textstring to the name
+    # @task(string) - the task's name
+    def duplicate_task(self, task):
+        taskobj = self.get_task_row(task)
+
+        # string to append to the end of the task name. Randomly generated letters and number of size n
+        n = 5
+        append_string = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(n))
+        taskobj.name = taskobj.name + '_' + append_string
+        self.taskdf = self.taskdf.append(taskobj)
+
+        return taskobj.name
 
     # unmaps tasks to service instances of all incomplete tasks
     # also resets the 'unmapped_parent_count' field to equal the parent count
@@ -98,7 +117,7 @@ class Tasks(object):
     # given a task name string, decrements the 'unmapped_parent_count' field for all children taskss
     # @task(string) - the task's name
     def signal_children_si_mapped(self, task):
-        self.taskdf.loc[self.taskdf.parents.apply(lambda x: task in x), 'unmapped_parent_count']
+        self.taskdf.loc[self.taskdf.parents.apply(lambda x: task in x), 'unmapped_parent_count'] -= 1
 
     # Completion Time
     # @task(string) - the task's name
@@ -110,7 +129,6 @@ class Tasks(object):
 
         if node_type is None:
             node_type = len(node_types) - 1
-
 
         json_time = taskobj.minimum_runtime / node_types[node_type][0]
 
@@ -142,7 +160,7 @@ class Tasks(object):
             return 0
 
     # Input Time -- the time it takes a task to read in its files
-    # @task(string) - the task's name
+    # @task(string) - task name or a list of task names
     def it(self, task, node_type=None):
         taskobj = self.get_task_row(task)
         srv_id = taskobj.service_instance_id # returns None if no service instance is found
@@ -233,10 +251,11 @@ class Tasks(object):
 
         if len(ST_task.parents) != 0:
             max_pct = 0
-            for p in self.taskdf['parents']:
-                ct = self.taskdf[self.taskdf['parents'] == p]['completion_time'] #I feel like completion time gets calculated in the task_schedule function
-                dt = self.dt(p, task_name)
+            for p in ST_task.parents:
+                ct = self.ct(p)
+                dt = self.dt(task_name, p)
                 max_pct = ct + dt if ct + dt > max_pct else max_pct
+
             max_pct = max_pct + self.mrt(task_name)
             pct = max_pct
         else:
@@ -251,12 +270,12 @@ class Tasks(object):
         if node_type is None or node_type < 0 or node_type >= len(node_types):
             raise Exception('pc() called with invalid node type: ' + str(node_type))
 
-        price_per_hr = node_types[node_type][3]
+        process_speed, read_speed, write_speed, price_per_hr = node_types[node_type]
         taskobj = self.get_task_row(task)
 
         # All in seconds
         read_time = sum([f['size'] for f in taskobj.files if f['link'] == 'input'])
-        runtime = task.minimum_runtime / proc_speed
+        runtime = taskobj.minimum_runtime / process_speed
         write_time = sum([f['size'] for f in taskobj.files if f['link'] == 'output'])
 
         return (read_time + runtime + write_time) / 3600.0 * price_per_hr

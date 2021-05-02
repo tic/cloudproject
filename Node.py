@@ -24,7 +24,7 @@ class Node(object):
     instance_map = {}
 
     # @type - integer in [ 0, len(node_types) )
-    def __init__(self, process_speed, ntype=0):
+    def __init__(self, ntype=0):
         self.working = False
         self.__id = Node.id
         Node.id += 1
