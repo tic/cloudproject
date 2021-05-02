@@ -132,6 +132,12 @@ class Tasks(object):
     def ct(self, task, node_type=None, duplicate=False):
         from Node import Node, node_types
         taskobj = self.get_task_row(task)
+
+        # if completion_time is already calculated within the taskdf, return that value
+        if (taskobj.completion_time is not None) and (not Math.isnan(taskobj.completion_time)):
+            return taskobj.completion_time
+
+        # calculate completion_time if it hasn't already been calculated
         if taskobj.service_instance_id is not None:
             node_type = Node.instance_map[taskobj.service_instance_id].ntype
 
