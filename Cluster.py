@@ -95,7 +95,7 @@ class Cluster(object):
             temp_dt = [] # Pseudocode line 5
 
             # Pseudocode line 6
-            ct_tij = Tasks.ct(task, service_instance.ntype)
+            ct_tij = Tasks.ct(task, service_instance.getID())
             pc_tij = Tasks.pc(task, service_instance.ntype)
 
             while True: # Pseudocode line 7
@@ -115,7 +115,8 @@ class Cluster(object):
                 tb_min = float('inf')
                 t_b = None
                 for t_ip in taskobj.parents:
-                    arg = Tasks.ct(t_ip) + Tasks.dt(t_ip, task)
+                    t_obj = Tasks.get_task_row(t_ip)
+                    arg = Tasks.ct(t_ip) + Tasks.dt(t_ip, task, t_obj.service_instance_id)
                     if arg < tb_min:
                         tb_min = arg
                         t_b = t_ip
@@ -140,7 +141,7 @@ class Cluster(object):
 
                     # Pseudocode lines 17-18
                     for t_k in WT_k:
-                        if Tasks.ct(t_k) > Tasks.lct(t_k): break
+                        if Tasks.ct(t_k, t_k.service_instance_id) > Tasks.lct(t_k): break
 
                 else: break # Pseudocode lines 19-20
 
@@ -154,7 +155,7 @@ class Cluster(object):
                 temp_dt = [] # Pseudocode line 24
 
                 # Pseudocode line 25
-                ct_tij = Tasks.ct(task, node_type=u)
+                ct_tij = Tasks.ct(task, hyp_node_type=u)
                 pc_tij = Tasks.pc(task, node_type=u)
 
                 while True: # Pseudocode line 26
@@ -193,7 +194,7 @@ class Cluster(object):
                     else: break # Pseudocode lines 35-36
 
             if u_star is not None: # Pseudocode line 37
-                pass
+                #pass
                 # Pseudocode line 38
                 # Lease a new service instance, SI_uk, with type u_star
 
@@ -212,6 +213,8 @@ class Cluster(object):
         # Pseudocode line 40
         # Map all the tasks in dup_tasks to selected_service_instance
         dup_task_new_names = [Tasks.duplicate_task(d) for d in dup_tasks]
+        if selected_service_instance is None:
+            print("tag is ", tag)
         Tasks.update_task_field(dup_task_new_names, 'service_instance_id', selected_service_instance.getID())
         # Pseudocode line 41
         # Map argument "task" to selected_service_instance

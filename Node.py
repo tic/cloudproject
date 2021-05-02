@@ -51,7 +51,14 @@ class Node(object):
             if next_task is not None:
                 # Simulate the task
                 # Total execution time is the input time, output time, and run time
-                task_execution_time = self.task_manager.it(next_task) + self.task_manager.ot(next_task) + self.task_manager.rt(next_task, self.ntype)
+                #task_execution_time = self.task_manager.it(next_task) + self.task_manager.ot(next_task) + self.task_manager.rt(next_task, self.ntype)
+                #total_read_time = self.task_manager.it()
+                #total_write_time = self.task_manager.ot(next_task)
+                earliest_start_time = self.task_manager.get_earliest_start_time(next_task)
+                curr_time = crt()
+                start_up_time = max(earliest_start_time - curr_time, 0) 
+                total_run_time = self.task_manager.rt(next_task, self.ntype)
+                task_execution_time = total_run_time + start_up_time
                 print(f'node#{self.__id} running task {next_task} ({task_execution_time}s)')
                 await asyncio.sleep(task_execution_time)
 

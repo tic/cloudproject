@@ -123,6 +123,15 @@ class Tasks(object):
             return None
         return matches.head(1).squeeze().name
 
+    # assumes that all parent tasks have already been run
+    def get_earliest_start_time(self, task):
+        parents = self.get_task_row(task).parents
+        earliest_start_time = 0
+        for p in parents:
+            start_time = self.get_task_row(p).completion_time + self.dt(p, task, task.service_instance_id) 
+            earliest_start_time = start_time if start_time <  earliest_start_time else earliest_start_time
+        return earliest_start_time
+
     # given a task name string, decrements the 'unmapped_parent_count' field for all children taskss
     # @task(string) - the task's name
     def signal_children_si_mapped(self, task):
@@ -130,33 +139,44 @@ class Tasks(object):
 
     # Completion Time
     # @task(string) - the task's name
-    def ct(self, task, node_type=None, duplicate=False):
+    # Completion Time
+    # @task(string) - the task's name
+    def ct(self, task, curr_node=None, duplicated_tasks=None, hyp_node_type=None):
         from Node import Node, node_types
         taskobj = self.get_task_row(task)
-
-        # if completion_time is already calculated within the taskdf, return that value
-        if (taskobj.completion_time is not None) and (not math.isnan(taskobj.completion_time)):
-            return taskobj.completion_time
-
-        # calculate completion_time if it hasn't already been calculated
         if taskobj.service_instance_id is not None:
             node_type = Node.instance_map[taskobj.service_instance_id].ntype
 
-        if node_type is None:
+        # There's a specific node being looked at when calculating CT in most cases, hence the following
+        if curr_node is None:
             node_type = len(node_types) - 1
+        else:
+            node_type = Node.instance_map[curr_node].ntype
+
+        if not hyp_node_type is None:
+            node_type = hyp_node_type
 
         json_time = taskobj.minimum_runtime / node_types[node_type][0]
 
         task_parents = self.get_task_row(task).parents
-        #TODO: possible performance issues due to recursive call to ct. Should we store this data in the dataframe?
-        parent_max_ct = max([self.ct(t) for t in task_parents]) if task_parents else 0
+        
+        #This calculates the latest time at which a predecessor completes and finishes the data transfer process taking into account the current node
+        parent_max_ct_dt = max([self.get_task_row(t)['completion_time'] + self.dt(t, task, curr_node) for t in task_parents]) if task_parents else 0
+        
+        if not self.taskdf[self.taskdf.service_instance_id == curr_node]['completion_time'].empty:
+            curr_node_earliest_finish_time = self.taskdf[self.taskdf.service_instance_id == curr_node]['completion_time'].max()
+        else:
+            curr_node_earliest_finish_time = 0
 
-        # If a task is being duplicated, the input time is voided
-        if duplicate:
-            return json_time + parent_max_ct
-
-        it = self.it(task, node_type)
-        return json_time + it + parent_max_ct
+        # min function is used in case for task duplication bc no need to wait for parents on different SI to finish
+        # max function used when no task duplication bc the soonest you can start is limited by which completes first
+        if not duplicated_tasks is None:
+            curr_node_earliest_finish_time += sum([self.get_task_row(t).minimum_runtime / node_types[node_type][0] for t in duplicated_tasks])
+            curr_node_earliest_finish_time += sum([self.it(p, t, curr_node) for t in duplicated_tasks for p in self.get_task_row(t).parents])
+            earliest_start_time = min(parent_max_ct_dt, curr_node_earliest_finish_time)
+        else:
+            earliest_start_time = max(parent_max_ct_dt, curr_node_earliest_finish_time)
+        return json_time + earliest_start_time
 
 
     ## TODO: finish this function
@@ -169,34 +189,40 @@ class Tasks(object):
 
         if task_children:
             return min(
-                max(self.ct(p) for p in self.get_task_row(child).parents) - self.dt(task, child) for child in task_children
+                max(self.ct(p, self.get_task_row(p).service_instance_id) for p in self.get_task_row(child).parents) - self.dt(task, child) for child in task_children
             )
         else:
             return 0
 
     # Input Time -- the time it takes a task to read in its files
-    # @task(string) - task name or a list of task names
-    def it(self, task, node_type=None):
-        taskobj = self.get_task_row(task)
-        srv_id = taskobj.service_instance_id # returns None if no service instance is found
+    # @task(string) - the task's name
+    def it(self, parent, task, srv_id=None):
+       #no read time if parent and task are on same node
+        parent_srv_id = self.get_task_row(parent)['service_instance_id']
+        if not parent_srv_id is None:
+            if parent_srv_id == srv_id:
+                return 0
 
-        # Compute input size by summing the size of all inputs files
-        input_size = sum([f['size'] for f in taskobj.files if f['link'] == 'input'])
+        #get size of files to be read in from parent
+        parent_output_names = [f['name'] for f in self.get_task_row(parent)['files']]
+        task_input = self.get_task_row(task)['files']
+        input_size = sum(f['size'] for f in task_input if f['name'] in parent_output_names)
 
-        # Get the node the task is mapped to
+        #assume worst case scenario - we don't know what service instance the task is considering
         if srv_id is None:
             # No mapped node, assume the worst case node
             from Node import node_types
-            node_data = node_types[len(node_types) - 1]
+            wc_read= node_types[len(node_types) - 1][1]
 
             # input time is the size of the input divided by the worse case read time
-            return input_size / node_data[2]
+            return input_size / wc_read
+
         else:
             from Node import Node
-            mapped_node = Node.instance_map[srv_id]
+            candidate_node = Node.instance_map[srv_id]
 
-            # Task has a mapped node, use it's actual speed data
-            return input_size / mapped_node.read_speed
+            # calculate read time based on read speed of current node
+            return input_size / candidate_node.read_speed
 
 
     # Output Time -- the time it takes a task to write its output files
@@ -212,10 +238,10 @@ class Tasks(object):
         if srv_id is None:
             # No mapped node, assume the worst case node
             from Node import node_types
-            node_data = node_types[len(node_types) - 1]
+            wc_read= node_types[len(node_types) - 1][1]
 
             # input time is the size of the input divided by the worse case read time
-            return output_size / node_data[1]
+            return output_size / wc_read
         else:
             from Node import Node
             mapped_node = Node.instance_map[srv_id]
@@ -223,18 +249,17 @@ class Tasks(object):
             # Task has a mapped node, use it's actual speed data
             return output_size / mapped_node.write_speed
 
+
     # Data Transfer Time (dt) from task p to task j
     # @task_p(string) - the task's name
     # @task_j(string) -    "       "
-    def dt(self, task_p, task_j):
-        # if tasks  and j are on the same service instance,
-        # the data transfer time is zero
-        task_p_obj = self.get_task_row(task_p)
-        task_j_obj = self.get_task_row(task_j)
-        if task_p_obj.service_instance_id == task_j_obj.service_instance_id:
+    def dt(self, task_p, task_j, srv_id=None):
+        # Note that it() defaults to zero if parent and task on the same node
+        parent_srv_id = self.get_task_row(task_p)['service_instance_id']
+        if srv_id == parent_srv_id and not (parent_srv_id is None):
             return 0
+        return self.ot(task_p) + self.it(task_p, task_j, srv_id)
 
-        return self.ot(task_p) + self.it(task_j)
 
     # Minimuim possible runtime of a task on the best possible node
     def mrt(self, task):
@@ -274,7 +299,11 @@ class Tasks(object):
             max_pct = max_pct + self.mrt(task_name)
             pct = max_pct
         else:
-            pct = crt() + self.it(task_name)
+            # Not using the it() function because I modified it to calculate based on a given parent and child task
+            from Node import node_types
+            wc_read = node_types[len(node_types) - 1][1]       #assume worst possible read speed
+            read_time = sum([f['size'] for f in ST_task.files if f['link'] == 'input']) / wc_read
+            pct = crt() + read_time
         self.update_task_field(task_name, 'predicated_completion_time', pct)
         return pct
 
