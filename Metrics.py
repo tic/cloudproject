@@ -5,7 +5,7 @@ from statistics import mean
 def NCT(task_df, wf):
     # Takes a task_df and wf object as input
     rdf = task_df[task_df['workflow']==wf.name]
-    ct_wf = rdf['completion time'].max()
+    ct_wf = rdf['completion_time'].max()
     NCT = (ct_wf - wf.arrival_time) / (rdf.minimum_runtime.sum())
     return NCT
 
@@ -15,7 +15,10 @@ def ANCT(task_df, wf_array):
 
 def TC(service_instances):
     # Takes a list of service instances as input
-    return mean([node.provisioned_time * node.cost for node in service_instances])
+    from Task import crt
+    current_time = crt()
+    #node.provisioned time is the clock time for when a node was provisioned
+    return mean([(current_time - node.provisioned_time)* node.cost for node in service_instances])
 
 def RU(service_instances):
     total_working_time = sum([node.execution_time for node in service_instances])
