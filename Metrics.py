@@ -6,7 +6,7 @@ def NCT(task_df, wf):
     # Takes a task_df and wf object as input
     rdf = task_df[task_df['workflow']==wf.name]
     ct_wf = rdf['completion time'].max()
-    NCT = (wf.arrival_time) / (rdf.minimum_runtime.sum())
+    NCT = (ct_wf - wf.arrival_time) / (rdf.minimum_runtime.sum())
     return NCT
 
 def ANCT(task_df, wf_array):
