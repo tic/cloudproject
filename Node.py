@@ -25,7 +25,7 @@ class Node(object):
 
     # @type - integer in [ 0, len(node_types) )
     def __init__(self, ntype=0):
-        self.working = False
+        self.operating = True
         self.__id = Node.id
         Node.id += 1
         Node.instance_map[self.__id] = self
@@ -39,12 +39,30 @@ class Node(object):
         self.read_speed = node_data[1]
         self.write_speed = node_data[2]
         self.cost = node_data[3]
-        self.provisioned_time = 0 # This is the amount of time the node is provisioned for - used in TC metric calculation
-        self.execution_time = 0  
+        from Task import crt
+        self.provisioned_time = crt() # This is the amount of time the node is provisioned for - used in TC metric calculation
+        self.execution_time = 0
+
+    async def node_event_loop(self):
+        while self.operating:
+            print('node operating')
+            next_task = self.tasks.get_next_task(self.__id)
+            if next_task is not None:
+                # Simulate the task
+                # Total execution time is the input time, output time, and run time
+                print('received a task')
+                task_execution_time = self.tasks.it(next_task) + self.tasks.ot(next_task) + self.tasks.rt(next_task, self.ntype)
+                await asyncio.sleep(task_execution_time)
+
+                # Update node execution time metric
+                self.execution_time += task_execution_time
+            else:
+                # Node has not been assigned a task.
+                # Allow other things to run
+                await asyncio.sleep(0.2)
 
 
-
-    async def run(self, task):
+    async def old_run(self, task):
         # print(f'node {self.__id} working')
         await task.setup(self.speed)
         await task.run(self.speed)

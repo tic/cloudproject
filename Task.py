@@ -114,6 +114,14 @@ class Tasks(object):
         self.taskdf.loc[self.taskdf.complete == False, 'service_instance_id'] = None
         self.taskdf.loc[self.taskdf.complete == False, 'unmapped_parent_count'] = self.taskdf.loc[self.taskdf.complete == False, 'parent_count']
 
+    # Get next task for a particular service instance
+    # Returns only the name of the next task
+    def get_next_task(self, si):
+        matches = self.taskdf[self.tasksdf.service_instance_id == si]
+        if len(matches) == 0:
+            return None
+        return matches[0].squeeze().name
+
     # given a task name string, decrements the 'unmapped_parent_count' field for all children taskss
     # @task(string) - the task's name
     def signal_children_si_mapped(self, task):
@@ -283,7 +291,6 @@ class Tasks(object):
 
     #Quick checksum to run at the end to ensure all tasks were processed
     def verify_workflow_completion(self):
-        rdf = self.taskdf 
+        rdf = self.taskdf
         #if any tasks have not been completed yet, then the below relationship does not hold
         return (rdf[rdf.complete==True].complete == rdf.complete)
-

@@ -1,17 +1,10 @@
 from Cluster import Cluster
-from Workflow import Workflow
+import asyncio
 
-async def main():
-    # create a compute cluster with 5 nodes
-    cloud = Cluster(15)
-    test#1
-    # generate a workflow
-    wf = Workflow('test workflow')
+cloud = Cluster()
 
-    # submit the workflow to the cloud
-    await cloud.submit_workflow(wf)
-    print('[main] done')
-
-
-from asyncio import run
-run(main())
+evloop = asyncio.get_event_loop()
+try:
+    evloop.run_until_complete(cloud.event_loop())
+except KeyboardInterrupt:
+    print('')

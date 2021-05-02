@@ -1,11 +1,11 @@
 from Node import Node
 from Task import Tasks
 import asyncio
-from time import sleep
 
 class Cluster(object):
-    def __init__(self, nodes):
-        self.__nodes = list(map(lambda _ : Node(), [0] * nodes))
+    def __init__(self):
+        self.__nodes = []
+        self.__node_event_loops = []
         self.__queued_workflows = []
         self.__tasks = Tasks()
         self.__task_queue = []
@@ -52,11 +52,13 @@ class Cluster(object):
             print(f'node {node} processed {count} tasks')
 
     async def event_loop(self):
+        sock = None
         try:
+            import socket
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.bind(('127.0.0.1'), 15555)
+            sock.bind(('127.0.0.1', 15555))
             sock.listen(1)
-            sock.setblocking(false)
+            sock.setblocking(False)
 
             loop = asyncio.get_event_loop()
             while True: # while workflows arrive...
@@ -68,6 +70,7 @@ class Cluster(object):
                     block = (await loop.sock_recv(client, 512)).decode('utf-8')
                     data += block
 
+                print('workflow received')
                 # Parse the data as a json, then as a workflow
                 import json
                 from Workflow import Workflow
@@ -227,6 +230,8 @@ class Cluster(object):
                 # Lease a new service instance, SI_uk, with type u_star
 
                 SI_uk = Node(u_star)
+                nev = asyncio.create_task(SI_uk.node_event_loop())
+                self.__node_event_loops.append(nev)
                 selected_service_instance = SI_uk
 
                 # Pseudocode line 39
