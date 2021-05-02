@@ -41,9 +41,9 @@ class Cluster(object):
                 import json
                 from Workflow import Workflow
                 try:
-                    n = 5
+                    n = 10
                     import random, string
-                    random_wf_name = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(n))
+                    random_wf_name = ''.join([random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(n)] + ['.wf'])
                     wf = Workflow(random_wf_name, json.loads(data[:-1]))
                 except Exception:
                     print('received malformed json')
