@@ -61,12 +61,13 @@ class Cluster(object):
             sock.setblocking(False)
 
             loop = asyncio.get_event_loop()
+            print('cluster is ready')
             while True: # while workflows arrive...
                 # Receive a workflow from a sender
                 client, _ = await loop.sock_accept(sock)
                 data = ''
                 while '\x00' not in data:
-                    print('receiving block', len(data) / 512)
+                    # print('receiving block', len(data) / 512)
                     block = (await loop.sock_recv(client, 512)).decode('utf-8')
                     data += block
 
@@ -97,8 +98,10 @@ class Cluster(object):
                     task_pct = [{"name": n, "pct": self.__tasks.calc_pct(n)} for n in task_names]
                     task_pct = sorted(task_pct, key=lambda x: x['pct'], reverse=True)
 
-                    for t in task_pct:
+                    ntasks = len(task_pct)
+                    for i, t in enumerate(task_pct):
                         # Algorithm 2: Task Scheduler
+                        print(f'Scheduling task {i}/{ntasks}')
                         self.task_schedule(t["name"])
 
                         # for each mapped task, updated all child task unmapped_parent_count fields
@@ -229,8 +232,11 @@ class Cluster(object):
                 # Pseudocode line 38
                 # Lease a new service instance, SI_uk, with type u_star
 
-                SI_uk = Node(u_star)
+                print('provisioning node')
+                SI_uk = Node(self.__tasks, u_star)
+                print('creating event loop')
                 nev = asyncio.create_task(SI_uk.node_event_loop())
+                print('nev:', nev)
                 self.__node_event_loops.append(nev)
                 selected_service_instance = SI_uk
 

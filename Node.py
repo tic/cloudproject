@@ -24,8 +24,9 @@ class Node(object):
     instance_map = {}
 
     # @type - integer in [ 0, len(node_types) )
-    def __init__(self, ntype=0):
+    def __init__(self, task_manager, ntype=0):
         self.operating = True
+        self.task_manager = task_manager
         self.__id = Node.id
         Node.id += 1
         Node.instance_map[self.__id] = self
@@ -42,16 +43,18 @@ class Node(object):
         from Task import crt
         self.provisioned_time = crt() # This is the amount of time the node is provisioned for - used in TC metric calculation
         self.execution_time = 0
+        print('node is ready to run')
 
     async def node_event_loop(self):
+        print('node event loop started')
         while self.operating:
             print('node operating')
-            next_task = self.tasks.get_next_task(self.__id)
+            next_task = self.task_manager.get_next_task(self.__id)
             if next_task is not None:
                 # Simulate the task
                 # Total execution time is the input time, output time, and run time
                 print('received a task')
-                task_execution_time = self.tasks.it(next_task) + self.tasks.ot(next_task) + self.tasks.rt(next_task, self.ntype)
+                task_execution_time = self.task_manager.it(next_task) + self.task_manager.ot(next_task) + self.task_manager.rt(next_task, self.ntype)
                 await asyncio.sleep(task_execution_time)
 
                 # Update node execution time metric
