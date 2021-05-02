@@ -53,7 +53,7 @@ class Tasks(object):
                 'minimum_runtime': task['runtime'],
                 'start_time': float('inf'),
                 'complete': False,
-            }, name=task['name']))
+            }, name=task['name'] + wf_name))
 
 
             # the next two methods may cause issues: there is no check in place to determin if the child task exists
