@@ -16,36 +16,6 @@ class Cluster(object):
         return self.__nodes #This makes more sense w/in context of TaskSchedule algorithm
         #return list(filter(lambda node : not node.working, self.__nodes))
 
-    async def submit_workflow(self, wf):
-        from Workflow import Workflow
-        assert(type(wf) == Workflow)
-
-        ###
-        # Algorithm 1
-        ###
-        self.__tasks.unmap_service_instances() # cancel all service instance mappings
-
-        # might need a function to cancel rent plans here
-
-        self.__tasks.add_tasks_from_wf(wf) # tasks from workflow added to task instance
-
-        while self.__tasks.get_tasks(mapped=False).size > 0:
-
-            unmapped_tasks = self.__tasks.get_tasks(mapped=False)
-            task_names = unmapped_tasks[unmapped_tasks['unmapped_parent_count'] == 0].index.tolist()
-            task_pct = [{"name": n, "pct": self.__tasks.calc_pct(n)} for n in task_names]
-            task_pct = sorted(task_pct, key=lambda x: x['pct'], reverse=True)
-
-            for t in task_pct:
-                # Algorithm 2: Task Scheduler
-                self.task_schedule(t["name"])
-
-                # for each mapped task, updated all child task unmapped_parent_count fields
-                self.__tasks.signal_children_si_mapped(t["name"])
-
-
-        await self.__start_workflow()
-
     async def __start_workflow(self):
         if len(self.__queued_workflows) == 0:
             self.working = False
@@ -81,6 +51,62 @@ class Cluster(object):
         for node, count in enumerate(node_job_count):
             print(f'node {node} processed {count} tasks')
 
+    async def event_loop(self):
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.bind(('127.0.0.1'), 15555)
+            sock.listen(1)
+            sock.setblocking(false)
+
+            loop = asyncio.get_event_loop()
+            while True: # while workflows arrive...
+                # Receive a workflow from a sender
+                client, _ = await loop.sock_accept(sock)
+                data = ''
+                while '\x00' not in data:
+                    print('receiving block', len(data) / 512)
+                    block = (await loop.sock_recv(client, 512)).decode('utf-8')
+                    data += block
+
+                # Parse the data as a json, then as a workflow
+                import json
+                from Workflow import Workflow
+                try:
+                    wf = Workflow('received.wf', json.loads(data[:-1]))
+                except Exception:
+                    print('received malformed json')
+                    continue
+
+                # Workflow received. Proceed with the algorithm!
+                ###
+                # Algorithm 1
+                ###
+                self.__tasks.unmap_service_instances() # cancel all service instance mappings
+
+                # might need a function to cancel rent plans here
+
+                self.__tasks.add_tasks_from_wf(wf) # tasks from workflow added to task instance
+
+                while self.__tasks.get_tasks(mapped=False).size > 0:
+
+                    unmapped_tasks = self.__tasks.get_tasks(mapped=False)
+                    task_names = unmapped_tasks[unmapped_tasks['unmapped_parent_count'] == 0].index.tolist()
+                    task_pct = [{"name": n, "pct": self.__tasks.calc_pct(n)} for n in task_names]
+                    task_pct = sorted(task_pct, key=lambda x: x['pct'], reverse=True)
+
+                    for t in task_pct:
+                        # Algorithm 2: Task Scheduler
+                        self.task_schedule(t["name"])
+
+                        # for each mapped task, updated all child task unmapped_parent_count fields
+                        self.__tasks.signal_children_si_mapped(t["name"])
+
+                # Tasks scheduled. Release control for a bit
+                await asyncio.sleep(1)
+
+        finally:
+            sock.close()
+
     def task_schedule(self, task):
         # Variable setup (pseudocode lines 1-2)
         selected_service_instance = None
@@ -99,7 +125,7 @@ class Cluster(object):
 
             # Pseudocode line 6
             ct_tij = Tasks.ct(task, service_instance.ntype)
-            pc_tij = Tasks.pc(task, service_instance.ntype) # TODO: Tasks class does not have a pc method.
+            pc_tij = Tasks.pc(task, service_instance.ntype)
 
             while True: # Pseudocode line 7
                 if ct_tij < min_completion_time: # Pseudocode line 8
@@ -214,4 +240,3 @@ class Cluster(object):
         # Pseudocode line 41
         # Map argument "task" to selected_service_instance
         Tasks.update_task_field(task, 'service_instance_id', selected_service_instance.getID())
-            
