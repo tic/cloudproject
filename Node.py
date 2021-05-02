@@ -56,7 +56,8 @@ class Node(object):
                 await asyncio.sleep(task_execution_time)
 
                 # Update task completion time
-                self.tasks.update_task_field(next_task.name, 'completion_time', crt())
+                self.task_manager.update_task_field(next_task, 'completion_time', crt())
+                self.task_manager.update_task_field(next_task, 'complete', True)
 
                 # Update node execution time metric
                 self.execution_time += task_execution_time

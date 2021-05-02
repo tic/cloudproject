@@ -16,41 +16,6 @@ class Cluster(object):
         return self.__nodes #This makes more sense w/in context of TaskSchedule algorithm
         #return list(filter(lambda node : not node.working, self.__nodes))
 
-    async def __start_workflow(self):
-        if len(self.__queued_workflows) == 0:
-            self.working = False
-            print('all workflows completed!')
-            return
-
-        # otherwise, translate a workflow into tasks
-        next_wf = self.__queued_workflows.pop(0)
-        self.__task_queue = next_wf.tasks()
-
-        # node performance tracking
-        node_job_count = [0] * len(self.__nodes)
-
-        print(f'starting workflow: \'{next_wf.name}\'')
-        while len(self.__task_queue) > 0:
-            for node in self.__nodes:
-                if not node.working and len(self.__task_queue) > 0:
-                    node_job_count[node.getID()] += 1
-                    node.working = True
-                    asyncio.create_task(node.run(self.__task_queue.pop(0)))
-                    print(f'assigned node {node.getID()} task ({len(self.__task_queue)} remaining)')
-            await asyncio.sleep(0.01)
-        done = False
-        while not done:
-            done = True
-            for node in self.__nodes:
-                if node.working:
-                    done = False
-                    break
-            await asyncio.sleep(1)
-
-        print('workflow done!')
-        for node, count in enumerate(node_job_count):
-            print(f'node {node} processed {count} tasks')
-
     async def event_loop(self):
         sock = None
         try:

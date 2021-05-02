@@ -118,7 +118,7 @@ class Tasks(object):
     # Get next task for a particular service instance
     # Returns only the name of the next task
     def get_next_task(self, si):
-        matches = self.taskdf[self.taskdf.service_instance_id == si]
+        matches = self.taskdf[(self.taskdf.service_instance_id == si) & (self.taskdf.complete == False)]
         if len(matches) == 0:
             return None
         return matches.head(1).squeeze().name
