@@ -3,7 +3,7 @@ def generate_workflow():
     from workflowhub.generator import MontageRecipe, SeismologyRecipe, EpigenomicsRecipe
     from random import randint
     template = [MontageRecipe, SeismologyRecipe, EpigenomicsRecipe][randint(0, 2)]
-    recipe = template.from_num_tasks(num_tasks = randint(100, 400))
+    recipe = template.from_num_tasks(num_tasks = randint(133, 400))
 
     from workflowhub import WorkflowGenerator
     generator = WorkflowGenerator(recipe)
@@ -16,7 +16,7 @@ def generate_workflow():
             from json import loads
             wfs[i] = loads(file.read())
         from os import remove
-        remove(fname)
+        #remove(fname)
 
     return wfs[0]
 
