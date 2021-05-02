@@ -1,5 +1,7 @@
 import asyncio
 
+from Task import crt
+
 KBs = lambda x : x * 1024
 MBs = lambda x : x * KBs(1024)
 
@@ -40,7 +42,6 @@ class Node(object):
         self.read_speed = node_data[1]
         self.write_speed = node_data[2]
         self.cost = node_data[3]
-        from Task import crt
         self.provisioned_time = crt() # This is the amount of time the node is provisioned for - used in TC metric calculation
         self.execution_time = 0
 
@@ -53,6 +54,9 @@ class Node(object):
                 print(f'running task {next_task}')
                 task_execution_time = self.task_manager.it(next_task) + self.task_manager.ot(next_task) + self.task_manager.rt(next_task, self.ntype)
                 await asyncio.sleep(task_execution_time)
+
+                # Update task completion time
+                self.tasks.update_task_field(next_task.name, 'completion_time', crt())
 
                 # Update node execution time metric
                 self.execution_time += task_execution_time
