@@ -123,14 +123,37 @@ class Tasks(object):
             return None
         return matches.head(1).squeeze().name
 
-    # assumes that all parent tasks have already been run
-    def get_earliest_start_time(self, task):
+    # assumes that all parent tasks have already been run or mapped for the  given task at hand
+    def get_earliest_start_time(self, task, srv_id=None, hyp_node_type=None):
         parents = self.get_task_row(task).parents
         earliest_start_time = 0
+        slowest_parent = None
         for p in parents:
-            start_time = self.get_task_row(p).completion_time + self.dt(p, task, task.service_instance_id) 
+
+            # if the current task has not been mapped
+            if self.get_task_row(task).service_instance_id is None:
+                
+                # Calculating start time when no hypothetical node type is provided 
+                if hyp_node_type is None:
+
+                    # assume the worst case
+                    if  srv_id is None:
+                        start_time = self.get_task_row(p).completion_time + self.dt(p, task)
+                    else:
+                        start_time = self.get_task_row(p).completion_time + self.dt(p, task, srv_id)
+                
+                # Used in 2nd part of TaskSchedule algorithm
+                else:
+                    start_time = self.get_task_row(p).completion_time + self.dt(p, task, hyp_node_type=hyp_node_type)
+
+            # The current task has already been mapped to a service instance
+            else: 
+                start_time = self.get_task_row(p).completion_time + self.dt(p, task, task.service_instance_id) 
+            
+            slowest_parent = p if start_time < earliest_start_time else slowest_parent
             earliest_start_time = start_time if start_time <  earliest_start_time else earliest_start_time
-        return earliest_start_time
+            
+        return earliest_start_time, slowest_parent
 
     # given a task name string, decrements the 'unmapped_parent_count' field for all children taskss
     # @task(string) - the task's name
@@ -161,10 +184,13 @@ class Tasks(object):
         task_parents = self.get_task_row(task).parents
         
         #This calculates the latest time at which a predecessor completes and finishes the data transfer process taking into account the current node
-        parent_max_ct_dt = max([self.get_task_row(t)['completion_time'] + self.dt(t, task, curr_node) for t in task_parents]) if task_parents else 0
+        parent_max_ct_dt = max([self.get_task_row(t)['completion_time'] + self.dt(t, task, curr_node, node_type) for t in task_parents]) if task_parents else 0
         
-        if not self.taskdf[self.taskdf.service_instance_id == curr_node]['completion_time'].empty:
-            curr_node_earliest_finish_time = self.taskdf[self.taskdf.service_instance_id == curr_node]['completion_time'].max()
+        if not curr_node is None:
+            if not self.taskdf[self.taskdf.service_instance_id == curr_node]['completion_time'].empty:
+                curr_node_earliest_finish_time = self.taskdf[self.taskdf.service_instance_id == curr_node]['completion_time'].max()
+            else:
+                curr_node_earliest_finish_time = 0
         else:
             curr_node_earliest_finish_time = 0
 
@@ -172,7 +198,7 @@ class Tasks(object):
         # max function used when no task duplication bc the soonest you can start is limited by which completes first
         if not duplicated_tasks is None:
             curr_node_earliest_finish_time += sum([self.get_task_row(t).minimum_runtime / node_types[node_type][0] for t in duplicated_tasks])
-            curr_node_earliest_finish_time += sum([self.it(p, t, curr_node) for t in duplicated_tasks for p in self.get_task_row(t).parents])
+            curr_node_earliest_finish_time += sum([self.it(p, t, curr_node, node_type) for t in duplicated_tasks for p in self.get_task_row(t).parents])
             earliest_start_time = min(parent_max_ct_dt, curr_node_earliest_finish_time)
         else:
             earliest_start_time = max(parent_max_ct_dt, curr_node_earliest_finish_time)
@@ -196,7 +222,7 @@ class Tasks(object):
 
     # Input Time -- the time it takes a task to read in its files
     # @task(string) - the task's name
-    def it(self, parent, task, srv_id=None):
+    def it(self, parent, task, srv_id=None, hyp_node_type=None):
        #no read time if parent and task are on same node
         parent_srv_id = self.get_task_row(parent)['service_instance_id']
         if not parent_srv_id is None:
@@ -207,6 +233,12 @@ class Tasks(object):
         parent_output_names = [f['name'] for f in self.get_task_row(parent)['files']]
         task_input = self.get_task_row(task)['files']
         input_size = sum(f['size'] for f in task_input if f['name'] in parent_output_names)
+
+        # if a hypothetical node type is passed in, then use that to calculate read speed
+        if not hyp_node_type is None:
+            from Node import node_types
+            wc_read= node_types[hyp_node_type][1]
+            return input_size / wc_read
 
         #assume worst case scenario - we don't know what service instance the task is considering
         if srv_id is None:
@@ -253,12 +285,12 @@ class Tasks(object):
     # Data Transfer Time (dt) from task p to task j
     # @task_p(string) - the task's name
     # @task_j(string) -    "       "
-    def dt(self, task_p, task_j, srv_id=None):
+    def dt(self, task_p, task_j, srv_id=None, hyp_node_type=None):
         # Note that it() defaults to zero if parent and task on the same node
         parent_srv_id = self.get_task_row(task_p)['service_instance_id']
         if srv_id == parent_srv_id and not (parent_srv_id is None):
             return 0
-        return self.ot(task_p) + self.it(task_p, task_j, srv_id)
+        return self.ot(task_p) + self.it(task_p, task_j, srv_id, hyp_node_type)
 
 
     # Minimuim possible runtime of a task on the best possible node

@@ -54,7 +54,7 @@ class Node(object):
                 #task_execution_time = self.task_manager.it(next_task) + self.task_manager.ot(next_task) + self.task_manager.rt(next_task, self.ntype)
                 #total_read_time = self.task_manager.it()
                 #total_write_time = self.task_manager.ot(next_task)
-                earliest_start_time = self.task_manager.get_earliest_start_time(next_task)
+                earliest_start_time = self.task_manager.get_earliest_start_time(next_task)[0]
                 curr_time = crt()
                 start_up_time = max(earliest_start_time - curr_time, 0) 
                 total_run_time = self.task_manager.rt(next_task, self.ntype)
