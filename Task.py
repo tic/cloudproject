@@ -148,7 +148,7 @@ class Tasks(object):
 
             # The current task has already been mapped to a service instance
             else: 
-                start_time = self.get_task_row(p).completion_time + self.dt(p, task, task.service_instance_id) 
+                start_time = self.get_task_row(p).completion_time + self.dt(p, task, self.get_task_row(task).service_instance_id) 
             
             slowest_parent = p if start_time < earliest_start_time else slowest_parent
             earliest_start_time = start_time if start_time <  earliest_start_time else earliest_start_time
