@@ -72,7 +72,9 @@ class Node(object):
                 #total_write_time = self.task_manager.ot(next_task)
                 curr_time = crt()
                 # wait for all predecessors to be met before running
-                success = self.task_manager.wait_to_run(next_task, self.__id) 
+                #print("running")
+                success = self.task_manager.wait_to_run(next_task, self.__id)
+                #print(success) 
                 total_run_time = self.task_manager.rt(next_task, self.ntype)
                 task_execution_time = total_run_time
                 print(f'node#{self.__id} running task {next_task} ({task_execution_time}s)')

@@ -27,6 +27,7 @@ class Tasks(object):
             'parent_count',
             'unmapped_parent_count', # the number of parents who are not yet mapped to a service instance node. Used for Algorithm 1
             'complete',
+            'priority',
         ])
         self.taskdf.set_index('name', inplace=True)
 
@@ -133,7 +134,7 @@ class Tasks(object):
         while flag:
             for p in parents:
                 parentobj = self.get_task_row(p)
-                if parentobj.compete == False:
+                if parentobj.complete == False:
                     break
             current_time = crt()
             for p in parents:
