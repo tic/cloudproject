@@ -27,6 +27,7 @@ class Tasks(object):
             'parent_count',
             'unmapped_parent_count', # the number of parents who are not yet mapped to a service instance node. Used for Algorithm 1
             'complete',
+            'scheduled',
         ])
         self.taskdf.set_index('name', inplace=True)
 
@@ -53,6 +54,7 @@ class Tasks(object):
                 'minimum_runtime': task['runtime'],
                 'start_time': float('inf'),
                 'complete': False,
+                'scheduled': float('inf'),
             }, name='_'.join([task['name'], wf_name])))
 
             # the next two methods may cause issues: there is no check in place to determin if the child task exists
@@ -112,15 +114,22 @@ class Tasks(object):
     # also resets the 'unmapped_parent_count' field to equal the parent count
     def unmap_service_instances(self):
         self.taskdf.loc[self.taskdf.complete == False, 'service_instance_id'] = None
+        self.taskdf.loc[self.taskdf.complete == False, 'scheduled'] = float('inf')
         self.taskdf.loc[self.taskdf.complete == False, 'unmapped_parent_count'] = self.taskdf.loc[self.taskdf.complete == False, 'parent_count']
 
     # Get next task for a particular service instance
     # Returns only the name of the next task
     def get_next_task(self, si):
+        print('called next task')
         matches = self.taskdf[(self.taskdf.service_instance_id == si) & (self.taskdf.complete == False)]
         if len(matches) == 0:
+            print('returned none')
             return None
-        return matches.head(1).squeeze().name
+
+        # Find the min. scheduled task
+        min_task = matches[matches.scheduled == matches.scheduled.min()]
+        min_task = min_task.head(1).squeeze().name
+        return min_task
 
     # given a task name string, decrements the 'unmapped_parent_count' field for all children taskss
     # @task(string) - the task's name

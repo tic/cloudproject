@@ -1,5 +1,5 @@
 from Node import Node
-from Task import Tasks
+from Task import Tasks, crt
 import asyncio
 
 class Cluster(object):
@@ -227,7 +227,9 @@ class Cluster(object):
         # Map all the tasks in dup_tasks to selected_service_instance
         dup_task_new_names = [Tasks.duplicate_task(d) for d in dup_tasks]
         Tasks.update_task_field(dup_task_new_names, 'service_instance_id', selected_service_instance.getID())
+        Tasks.update_task_field(dup_task_new_names, 'scheduled', crt())
         # Pseudocode line 41
         # Map argument "task" to selected_service_instance
         print(f'mapping {task} to {selected_service_instance.getID()}')
+        Tasks.update_task_field(task, 'scheduled', crt())
         Tasks.update_task_field(task, 'service_instance_id', selected_service_instance.getID())
