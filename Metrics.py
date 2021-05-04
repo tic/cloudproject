@@ -18,7 +18,7 @@ def TC(service_instances):
     from Task import crt
     current_time = crt()
     #node.provisioned time is the clock time for when a node was provisioned
-    return mean([(current_time - node.provisioned_time)* node.cost for node in service_instances])
+    return mean([node.get_live_provisioned_time() * node.cost for node in service_instances])
 
 def RU(service_instances):
     total_working_time = sum([node.execution_time for node in service_instances])

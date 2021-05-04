@@ -30,7 +30,12 @@ class Cluster(object):
             while True: # while workflows arrive...
                 # Receive a workflow from a sender
                 client, _ = await loop.sock_accept(sock)
-                data = ''
+                data = (await loop.sock_recv(client, 512)).decode('utf-8')
+                if '\x01' in data:
+                    # Special message to trigger task completion sanity check
+                    complete = self.__tasks.verify_workflow_completion()
+                    print(complete)
+                    continue
                 while '\x00' not in data:
                     # print('receiving block', len(data) / 512)
                     block = (await loop.sock_recv(client, 512)).decode('utf-8')
@@ -69,7 +74,7 @@ class Cluster(object):
                     ntasks = len(task_pct) - 1
                     for i, t in enumerate(task_pct):
                         # Algorithm 2: Task Scheduler
-                        print(f'Scheduling task {i}/{ntasks}')
+                        # print(f'Scheduling task {i}/{ntasks}')
                         self.task_schedule(t["name"])
 
                         # for each mapped task, updated all child task unmapped_parent_count fields
@@ -77,7 +82,8 @@ class Cluster(object):
 
                 # Tasks scheduled. Release control for a bit
                 await asyncio.sleep(1)
-
+        except Exception as err:
+            print(err)
         finally:
             sock.close()
 
@@ -110,6 +116,8 @@ class Cluster(object):
                     min_completion_time = max(ct_tij, lct_tij)
                     dup_tasks = list(temp_dt)
 
+                    # print(ct_tij, lct_tij)
+                    # print(pc_tij, min_cost)
                     if ct_tij <= lct_tij and pc_tij < min_cost: # Pseudocode line 11
                         # Pseudocode line 12
                         min_cost = pc_tij
@@ -208,15 +216,12 @@ class Cluster(object):
                     else: break # Pseudocode lines 35-36
 
             if u_star is not None: # Pseudocode line 37
-                #pass
                 # Pseudocode line 38
                 # Lease a new service instance, SI_uk, with type u_star
 
-                print('provisioning node')
+                # print('provisioning node', u_star)
                 SI_uk = Node(self.__tasks, u_star)
-                print('creating event loop')
                 nev = asyncio.create_task(SI_uk.node_event_loop())
-                print('nev:', nev)
                 self.__node_event_loops.append(nev)
                 selected_service_instance = SI_uk
 
