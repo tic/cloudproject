@@ -30,7 +30,12 @@ class Cluster(object):
             while True: # while workflows arrive...
                 # Receive a workflow from a sender
                 client, _ = await loop.sock_accept(sock)
-                data = ''
+                data = (await loop.sock_recv(client, 512)).decode('utf-8')
+                if '\x01' in data:
+                    # Special message to trigger task completion sanity check
+                    complete = self.__tasks.verify_workflow_completion()
+                    print(complete)
+                    continue
                 while '\x00' not in data:
                     # print('receiving block', len(data) / 512)
                     block = (await loop.sock_recv(client, 512)).decode('utf-8')
@@ -77,7 +82,8 @@ class Cluster(object):
 
                 # Tasks scheduled. Release control for a bit
                 await asyncio.sleep(1)
-
+        except Exception as err:
+            print(err)
         finally:
             sock.close()
 
