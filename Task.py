@@ -44,8 +44,8 @@ class Tasks(object):
             self.taskdf = self.taskdf.append(pandas.Series({
                 #'name': task['name'],
                 'workflow': wf_name,
-                'parents': task['parents'],
-                'children': task['children'],
+                'parents': ['_'.join([t, wf_name]) for t in task['parents']],
+                'children': ['_'.join([t, wf_name]) for t in task['children']],
                 'parent_count': len(task['parents']),
                 'unmapped_parent_count': len(task['parents']),
                 'files': task['files'],
@@ -53,8 +53,7 @@ class Tasks(object):
                 'minimum_runtime': task['runtime'],
                 'start_time': float('inf'),
                 'complete': False,
-            }, name=task['name'] + wf_name))
-
+            }, name='_'.join([task['name'], wf_name])))
 
             # the next two methods may cause issues: there is no check in place to determin if the child task exists
             # we're relying on the imported workframe data to be pristine
