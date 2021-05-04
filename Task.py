@@ -114,6 +114,7 @@ class Tasks(object):
     def unmap_service_instances(self):
         self.taskdf.loc[self.taskdf.complete == False, 'service_instance_id'] = None
         self.taskdf.loc[self.taskdf.complete == False, 'unmapped_parent_count'] = self.taskdf.loc[self.taskdf.complete == False, 'parent_count']
+        self.taskdf.loc[self.taskdf.complete == False, 'completion_time'] = None
 
     # Get next task for a particular service instance
     # Returns only the name of the next task
@@ -122,8 +123,29 @@ class Tasks(object):
         if len(matches) == 0:
             return None
         return matches.head(1).squeeze().name
+            
 
-    # assumes that all parent tasks have already been run or mapped for the  given task at hand
+    # If a node is about to run a task, this function makes sure that it  can't run until
+    # all predecessors have been run and data transfered    
+    def wait_to_run(self, task, srv_id):
+        parents = self.get_task_row(task)
+        flag = True
+        while flag:
+            for p in parents:
+                parentobj = self.get_task_row(p)
+                if parentobj.compete == False:
+                    break
+            current_time = crt()
+            for p in parents:
+                parentobj = self.get_task_row(p)
+                if parentobj.completion_time + self.dt(p, task, srv_id) > current_time:
+                    break
+            flag = False
+        return 0
+
+
+
+    # Get the earliest time that a task can run 
     def get_earliest_start_time(self, task, srv_id=None, hyp_node_type=None):
         parents = self.get_task_row(task).parents
         earliest_start_time = 0
