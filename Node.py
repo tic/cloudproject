@@ -42,13 +42,29 @@ class Node(object):
         self.read_speed = node_data[1]
         self.write_speed = node_data[2]
         self.cost = node_data[3]
-        self.provisioned_time = crt() # This is the amount of time the node is provisioned for - used in TC metric calculation
+
+        self.awaken_time = crt()
+        self.provisioned_time = 0 # This is the amount of time the node is provisioned *and awake* for - used in TC metric calculation
         self.execution_time = 0
 
+    # Written in a way to avoid using braches to ensure maximum performance
+    def get_live_provisioned_time(self):
+        return int(self.sleeping) * self.provisioned_time + int(not self.sleeping) * (self.provisioned_time + crt() - self.awaken_time)
+
+    # Code used to manage provisioned time is written without using branches
+    #  to ensure maximum possible performance.
     async def node_event_loop(self):
+        self.sleeping = False
+        task_search_attempts = 1
         while self.operating:
+
             next_task = self.task_manager.get_next_task(self.__id)
             if next_task is not None:
+                # ###### Provisioned time management ###### #
+                self.awaken_time = crt() * (task_search_attempts > 0)
+                task_search_attempts = 0
+                # ###### #
+
                 # Simulate the task
                 # Total execution time is the input time, output time, and run time
                 task_execution_time = self.task_manager.it(next_task) + self.task_manager.ot(next_task) + self.task_manager.rt(next_task, self.ntype)
@@ -65,16 +81,16 @@ class Node(object):
             else:
                 # Node has not been assigned a task.
                 # Allow other things to run
-                await asyncio.sleep(0.2)
 
+                # ###### Provisioned time management ###### #
+                next_sleeping = not bool(task_search_attempts - 5) # node goes to sleep after 5 consecutive checks for tasks
+                self.provisioned_time += int(not self.sleeping) * int(next_sleeping) * (crt() - self.awaken_time)
+                self.sleeping = next_sleeping
+                task_search_attempts = (task_search_attempts + 1) * int(not self.sleeping) + task_search_attempts * int(self.sleeping)
+                # ###### #
 
-    async def old_run(self, task):
-        # print(f'node {self.__id} working')
-        await task.setup(self.speed)
-        await task.run(self.speed)
-        await task.finish(self.speed)
-        self.working = False
-        # print(f'node {self.__id} done!')
+                # If node is self.sleeping, sleep for 1 second. If awake, sleep for just 0.2s
+                await asyncio.sleep(2 * int(self.sleeping) + 0.2 * int(not self.sleeping))
 
     def __str__(self):
         return f'node#{self.__id} w proc spd. {self.speed}x'
