@@ -3,14 +3,21 @@ import socket
 import Workflow
 import json
 
-do_wf = input('press enter to send a workflow, or any key\nthen enter to trigger the sanity check: ') == ''
+do_wf = input('press enter to send a workflow, or any key\nthen enter to trigger the sanity check: ')
 
 
 try:
-    if do_wf:
+    if do_wf == '':
         print('generating workflow')
         wf = Workflow.generate_workflow()
         msg = json.dumps(wf) + '\x00'
+
+    elif do_wf == 't':
+        wf = None
+        with open('wf_test.json', 'r') as file:
+            wf = json.loads(file.read())
+        msg = json.dumps(wf) + '\x00'
+    
     else:
         msg = '\x01'
 

@@ -27,6 +27,7 @@ class Tasks(object):
             'parent_count',
             'unmapped_parent_count', # the number of parents who are not yet mapped to a service instance node. Used for Algorithm 1
             'complete',
+            'scheduled',
         ])
         self.taskdf.set_index('name', inplace=True)
 
@@ -53,6 +54,7 @@ class Tasks(object):
                 'minimum_runtime': task['runtime'],
                 'start_time': float('inf'),
                 'complete': False,
+                'scheduled': float('inf'),
             }, name='_'.join([task['name'], wf_name])))
 
 
@@ -113,6 +115,7 @@ class Tasks(object):
     # also resets the 'unmapped_parent_count' field to equal the parent count
     def unmap_service_instances(self):
         self.taskdf.loc[self.taskdf.complete == False, 'service_instance_id'] = None
+        self.taskdf.loc[self.taskdf.complete == False, 'scheduled'] = float('inf')
         self.taskdf.loc[self.taskdf.complete == False, 'unmapped_parent_count'] = self.taskdf.loc[self.taskdf.complete == False, 'parent_count']
         self.taskdf.loc[self.taskdf.complete == False, 'completion_time'] = None
 
@@ -122,8 +125,12 @@ class Tasks(object):
         matches = self.taskdf[(self.taskdf.service_instance_id == si) & (self.taskdf.complete == False)]
         if len(matches) == 0:
             return None
-        return matches.head(1).squeeze().name
-            
+
+        # Find the min. scheduled task
+        min_task = matches[matches.scheduled == matches.scheduled.min()]
+        min_task = min_task.head(1).squeeze().name
+        return min_task
+
 
     # If a node is about to run a task, this function makes sure that it can't run until
     # all predecessors have been run and data transfered    
@@ -157,7 +164,7 @@ class Tasks(object):
 
 
 
-    # Get the earliest time that a task can run 
+    # Get the earliest time that a task can run
     def get_earliest_start_time(self, task, srv_id=None, hyp_node_type=None):
         parents = self.get_task_row(task).parents
         earliest_start_time = 0
@@ -166,8 +173,8 @@ class Tasks(object):
 
             # if the current task has not been mapped
             if self.get_task_row(task).service_instance_id is None:
-                
-                # Calculating start time when no hypothetical node type is provided 
+
+                # Calculating start time when no hypothetical node type is provided
                 if hyp_node_type is None:
 
                     # assume the worst case
@@ -175,18 +182,18 @@ class Tasks(object):
                         start_time = self.get_task_row(p).completion_time + self.dt(p, task)
                     else:
                         start_time = self.get_task_row(p).completion_time + self.dt(p, task, srv_id)
-                
+
                 # Used in 2nd part of TaskSchedule algorithm
                 else:
                     start_time = self.get_task_row(p).completion_time + self.dt(p, task, hyp_node_type=hyp_node_type)
 
             # The current task has already been mapped to a service instance
-            else: 
-                start_time = self.get_task_row(p).completion_time + self.dt(p, task, self.get_task_row(task).service_instance_id) 
-            
+            else:
+                start_time = self.get_task_row(p).completion_time + self.dt(p, task, self.get_task_row(task).service_instance_id)
+
             slowest_parent = p if start_time < earliest_start_time else slowest_parent
             earliest_start_time = start_time if start_time <  earliest_start_time else earliest_start_time
-            
+
         return earliest_start_time, slowest_parent
 
     # given a task name string, decrements the 'unmapped_parent_count' field for all children taskss
@@ -216,10 +223,10 @@ class Tasks(object):
         json_time = taskobj.minimum_runtime / node_types[node_type][0]
 
         task_parents = self.get_task_row(task).parents
-        
+
         #This calculates the latest time at which a predecessor completes and finishes the data transfer process taking into account the current node
         parent_max_ct_dt = max([self.get_task_row(t)['completion_time'] + self.dt(t, task, curr_node, node_type) for t in task_parents]) if task_parents else 0
-        
+
         if not curr_node is None:
             if not self.taskdf[self.taskdf.service_instance_id == curr_node]['completion_time'].empty:
                 curr_node_earliest_finish_time = self.taskdf[self.taskdf.service_instance_id == curr_node]['completion_time'].max()
