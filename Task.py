@@ -125,22 +125,34 @@ class Tasks(object):
         return matches.head(1).squeeze().name
             
 
-    # If a node is about to run a task, this function makes sure that it  can't run until
+    # If a node is about to run a task, this function makes sure that it can't run until
     # all predecessors have been run and data transfered    
-    def wait_to_run(self, task, srv_id):
+    async def wait_to_run(self, task, srv_id):
         parents = self.get_task_row(task)
         flag = True
         while flag:
+            flag1 = False
             for p in parents:
                 parentobj = self.get_task_row(p)
                 if parentobj.complete == False:
+                    flag1 = True
                     break
             current_time = crt()
-            for p in parents:
-                parentobj = self.get_task_row(p)
-                if parentobj.completion_time + self.dt(p, task, srv_id) > current_time:
-                    break
-            flag = False
+            if flag1:
+                flag = True
+            else:
+                flag2 = False
+                for p in parents:
+                    parentobj = self.get_task_row(p)
+                    if parentobj.completion_time + self.dt(p, task, srv_id) > current_time:
+                        flag2 = True
+                        break
+                if flag2:
+                    flag = False
+                else:
+                    flag = True
+            await sleep(0)
+
         return 0
 
 
