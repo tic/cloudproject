@@ -79,7 +79,7 @@ class Cluster(object):
 
                         # for each mapped task, updated all child task unmapped_parent_count fields
                         self.__tasks.signal_children_si_mapped(t["name"])
-
+                print("tasks all scheduled")
                 # Tasks scheduled. Release control for a bit
                 await asyncio.sleep(1)
         except Exception as err:

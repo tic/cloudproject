@@ -129,25 +129,32 @@ class Tasks(object):
         # Find the min. scheduled task
         min_task = matches[matches.scheduled == matches.scheduled.min()]
         min_task = min_task.head(1).squeeze().name
+        #print("finding next task")
         return min_task
 
 
     # If a node is about to run a task, this function makes sure that it can't run until
     # all predecessors have been run and data transfered    
     async def wait_to_run(self, task, srv_id):
-        parents = self.get_task_row(task)
+        #print("checking to see if we can run")
+        parents = self.get_task_row(task).parents
+        #print("parents are ", parents)
         flag = True
         while flag:
+            #print("top of loop")
             flag1 = False
             for p in parents:
+                #print("instrumentation parents")
                 parentobj = self.get_task_row(p)
                 if parentobj.complete == False:
                     flag1 = True
                     break
+            #print("instrumentation 1")
             current_time = crt()
             if flag1:
                 flag = True
             else:
+                #print("flag1 is ", flag1)
                 flag2 = False
                 for p in parents:
                     parentobj = self.get_task_row(p)
@@ -155,10 +162,12 @@ class Tasks(object):
                         flag2 = True
                         break
                 if flag2:
-                    flag = False
-                else:
                     flag = True
-            await sleep(0)
+                else:
+                    flag = False
+            #print("flag is ", flag)
+            await sleep(0.00000000001)
+        #print("out of loop")
 
         return 0
 
@@ -402,4 +411,4 @@ class Tasks(object):
     def verify_workflow_completion(self):
         rdf = self.taskdf
         #if any tasks have not been completed yet, then the below relationship does not hold
-        return (rdf[rdf.complete==True].complete == rdf.complete)
+        return (rdf[rdf.complete==True].complete.equals(rdf.complete))

@@ -59,10 +59,13 @@ class Node(object):
         while self.operating:
 
             next_task = self.task_manager.get_next_task(self.__id)
+            #print("next task is ", str(next_task))
             if next_task is not None:
+                #print("next task is not none")
                 # ###### Provisioned time management ###### #
                 self.awaken_time = crt() * (task_search_attempts > 0)
                 task_search_attempts = 0
+                #print("trying to awaken")
                 # ###### #
 
                 # Simulate the task
@@ -72,9 +75,10 @@ class Node(object):
                 #total_write_time = self.task_manager.ot(next_task)
                 curr_time = crt()
                 # wait for all predecessors to be met before running
-                print("node id ", self.__id, " running ", next_task.name)
+                #print("right before printing node id")
+                #print("node id ", self.__id, " running ", next_task.name)
                 await self.task_manager.wait_to_run(next_task, self.__id)
-                #print(success) 
+                #print('successfully waited') 
                 total_run_time = self.task_manager.rt(next_task, self.ntype)
                 task_execution_time = total_run_time
                 print(f'node#{self.__id} running task {next_task} ({task_execution_time}s)')
