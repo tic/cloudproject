@@ -65,7 +65,8 @@ class Node(object):
             if next_task is not None:
                 #print("next task is not none")
                 # ###### Provisioned time management ###### #
-                self.awaken_time = crt() * (task_search_attempts > 0)
+                condition = (task_search_attempts > 0)
+                self.awaken_time = crt() * condition + int(not condition) * self.awaken_time
                 task_search_attempts = 0
                 #print("trying to awaken")
                 # ###### #

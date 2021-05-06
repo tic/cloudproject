@@ -107,6 +107,7 @@ class Tasks(object):
         n = 5
         append_string = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(n))
         taskobj.name = taskobj.name + '_' + append_string
+        print("duplicating task ", taskobj.name)
         self.taskdf = self.taskdf.append(taskobj)
 
         return taskobj.name

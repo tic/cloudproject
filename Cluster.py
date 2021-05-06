@@ -38,8 +38,8 @@ class Cluster(object):
                     complete = self.__tasks.verify_workflow_completion()
                     if complete:
                         anct = ANCT(self.__tasks, self.wf_list)
-                        tc = TC(self.wf_list)
-                        ru = RU(self.wf_list)
+                        tc = TC(self.__nodes)
+                        ru = RU(self.__nodes)
                         print("All tasks completed")
                         print("ANCT is: ", anct)
                         print("TC is: ", tc)
