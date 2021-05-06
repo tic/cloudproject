@@ -17,7 +17,15 @@ try:
         with open('wf_test.json', 'r') as file:
             wf = json.loads(file.read())
         msg = json.dumps(wf) + '\x00'
+
+    elif do_wf.lower() == "m" or do_wf.lower() == "e" or do_wf.lower() == "s":
+        print('generating specified workflow')
+        wf = Workflow.generate_workflow(do_wf.lower())
+        msg = json.dumps(wf) + '\x00'
     
+    elif do_wf == "metrics":
+        msg = '\x01'
+        
     else:
         msg = '\x01'
 

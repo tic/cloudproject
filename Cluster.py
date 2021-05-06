@@ -1,6 +1,7 @@
 from Node import Node
 from Task import Tasks, crt
 import asyncio
+from Metrics import ANCT, TC, RU
 
 class Cluster(object):
     def __init__(self):
@@ -10,6 +11,7 @@ class Cluster(object):
         self.__tasks = Tasks()
         self.__task_queue = []
         self.working = False
+        self.wf_list = []   #list of all workflows that arrive
 
     # Get available service instances
     def get_si_list(self):
@@ -34,7 +36,16 @@ class Cluster(object):
                 if '\x01' in data:
                     # Special message to trigger task completion sanity check
                     complete = self.__tasks.verify_workflow_completion()
-                    print(complete)
+                    if complete:
+                        anct = ANCT(self.__tasks, self.wf_list)
+                        tc = TC(self.wf_list)
+                        ru = RU(self.wf_list)
+                        print("All tasks completed")
+                        print("ANCT is: ", anct)
+                        print("TC is: ", tc)
+                        print("ru is: ", ru)
+                    else:
+                        print("Not all tasks completed")
                     continue
                 while '\x00' not in data:
                     # print('receiving block', len(data) / 512)
@@ -53,6 +64,7 @@ class Cluster(object):
                 except Exception:
                     print('received malformed json')
                     continue
+                self.wf_list.append(wf)
 
                 # Workflow received. Proceed with the algorithm!
                 ###

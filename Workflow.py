@@ -1,8 +1,12 @@
 
-def generate_workflow():
+def generate_workflow(wf_name=None):
     from workflowhub.generator import MontageRecipe, SeismologyRecipe, EpigenomicsRecipe
     from random import randint
-    wf_type = randint(0, 2)
+    if wf_name is None:
+        wf_type = randint(0, 2)
+    else:
+        wf_dict = {"m":0, "s":1, "e":2}
+        wf_type = wf_dict[wf_name] 
     template = [MontageRecipe, SeismologyRecipe, EpigenomicsRecipe][wf_type]
     recipe = template.from_num_tasks(num_tasks = randint(150, 400))
 
@@ -23,6 +27,13 @@ def generate_workflow():
         remove(fname)
 
     return wfs[0]
+
+def gen_workflow_list(workflow_list=[]):
+    wfs = []
+    for wf in workflow_list:
+        wfs.append(generate_workflow(wf))
+    return wfs
+
 
 class Workflow(object):
     def __init__(self, name, wf=None):
