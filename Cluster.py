@@ -4,7 +4,7 @@ import asyncio
 from Metrics import ANCT, TC, RU
 
 class Cluster(object):
-    def __init__(self):
+    def __init__(self, scheduler_type=None, node_list = []):
         self.__nodes = []
         self.__node_event_loops = []
         self.__queued_workflows = []
@@ -12,6 +12,21 @@ class Cluster(object):
         self.__task_queue = []
         self.working = False
         self.wf_list = []   #list of all workflows that arrive
+        if not scheduler_type is None:
+            self.scheduler_type = scheduler_type
+            #node_list should be in the same order as types in node_types
+            for i in range(len(node_list)):
+                number_of_nodes_of_type_i = node_list[i]
+                for n in number_of_nodes_of_type_i:
+                    SI_uk = Node(self.__tasks, i)
+                    nev = asyncio.create_task(SI_uk.node_event_loop())
+                    self.__node_event_loops.append(nev)
+                    selected_service_instance = SI_uk
+                    self.__nodes.append(selected_service_instance)
+            self.__nodes.append(selected_service_instance)
+        else:
+            self.scheduler_type = None
+
 
     # Get available service instances
     def get_si_list(self):
@@ -66,34 +81,38 @@ class Cluster(object):
                     continue
                 self.wf_list.append(wf)
 
-                # Workflow received. Proceed with the algorithm!
-                ###
-                # Algorithm 1
-                ###
-                self.__tasks.unmap_service_instances() # cancel all service instance mappings
+                if not self.scheduler_type is None:
+                    self.__tasks.add_tasks_from_wf(wf)
+                    
+                if self.scheduler_type is None:
+                    # Workflow received. Proceed with the algorithm!
+                    ###
+                    # Algorithm 1
+                    ###
+                    self.__tasks.unmap_service_instances() # cancel all service instance mappings
 
-                # might need a function to cancel rent plans here
+                    # might need a function to cancel rent plans here
 
-                self.__tasks.add_tasks_from_wf(wf) # tasks from workflow added to task instance
+                    self.__tasks.add_tasks_from_wf(wf) # tasks from workflow added to task instance
 
-                while self.__tasks.get_tasks(mapped=False).size > 0:
+                    while self.__tasks.get_tasks(mapped=False).size > 0:
 
-                    unmapped_tasks = self.__tasks.get_tasks(mapped=False)
-                    task_names = unmapped_tasks[unmapped_tasks['unmapped_parent_count'] == 0].index.tolist()
-                    task_pct = [{"name": n, "pct": self.__tasks.calc_pct(n)} for n in task_names]
-                    task_pct = sorted(task_pct, key=lambda x: x['pct'], reverse=True)
-                    #print(task_pct)
-                    ntasks = len(task_pct) - 1
-                    for i, t in enumerate(task_pct):
-                        # Algorithm 2: Task Scheduler
-                        # print(f'Scheduling task {i}/{ntasks}')
-                        self.task_schedule(t["name"])
+                        unmapped_tasks = self.__tasks.get_tasks(mapped=False)
+                        task_names = unmapped_tasks[unmapped_tasks['unmapped_parent_count'] == 0].index.tolist()
+                        task_pct = [{"name": n, "pct": self.__tasks.calc_pct(n)} for n in task_names]
+                        task_pct = sorted(task_pct, key=lambda x: x['pct'], reverse=True)
+                        #print(task_pct)
+                        ntasks = len(task_pct) - 1
+                        for i, t in enumerate(task_pct):
+                            # Algorithm 2: Task Scheduler
+                            # print(f'Scheduling task {i}/{ntasks}')
+                            self.task_schedule(t["name"])
 
-                        # for each mapped task, updated all child task unmapped_parent_count fields
-                        self.__tasks.signal_children_si_mapped(t["name"])
-                print("tasks all scheduled")
-                # Tasks scheduled. Release control for a bit
-                await asyncio.sleep(1)
+                            # for each mapped task, updated all child task unmapped_parent_count fields
+                            self.__tasks.signal_children_si_mapped(t["name"])
+                    print("tasks all scheduled")
+                    # Tasks scheduled. Release control for a bit
+                    await asyncio.sleep(1)
         except Exception as err:
             print(err)
         finally:
