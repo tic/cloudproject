@@ -11,7 +11,7 @@ crt = lambda : round(now() * 1000) / 1000 # get current time to the nearest mill
 
 class Tasks(object):
 
-    def __init__(self):
+    def __init__(self, cluster):
         self.taskdf = pandas.DataFrame(columns=[
             'name',
             'workflow',
@@ -36,6 +36,8 @@ class Tasks(object):
             'prevtask',
             'nexttask',
         ])
+
+        self.cluster = cluster
 
     # @wf(dict) - dictionary representation of workflow json
     def add_tasks_from_wf(self, wf):
@@ -135,7 +137,7 @@ class Tasks(object):
 
 
     # If a node is about to run a task, this function makes sure that it can't run until
-    # all predecessors have been run and data transfered    
+    # all predecessors have been run and data transfered
     async def wait_to_run(self, task, srv_id):
         #print("checking to see if we can run")
         parents = self.get_task_row(task).parents

@@ -8,7 +8,7 @@ class Cluster(object):
         self.__nodes = []
         self.__node_event_loops = []
         self.__queued_workflows = []
-        self.__tasks = Tasks()
+        self.__tasks = Tasks(self)
         self.__task_queue = []
         self.working = False
         self.wf_list = []   #list of all workflows that arrive
@@ -23,9 +23,10 @@ class Cluster(object):
         try:
             import socket
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.bind(('127.0.0.1', 15555))
+            port_offset = int(input('pick a socket port offset: '))
+            sock.bind(('127.0.0.1', 15555 + port_offset))
             sock.listen(1)
-            sock.setblocking(False)
+            sock.setblocking(True)
 
             loop = asyncio.get_event_loop()
             print('cluster is ready')
@@ -47,6 +48,8 @@ class Cluster(object):
                     else:
                         print("Not all tasks completed")
                     continue
+                if '\x02' in data:
+                    await asyncio.sleep(3600)
                 while '\x00' not in data:
                     # print('receiving block', len(data) / 512)
                     block = (await loop.sock_recv(client, 512)).decode('utf-8')
@@ -92,8 +95,9 @@ class Cluster(object):
                         # for each mapped task, updated all child task unmapped_parent_count fields
                         self.__tasks.signal_children_si_mapped(t["name"])
                 print("tasks all scheduled")
+                input('continue?')
                 # Tasks scheduled. Release control for a bit
-                await asyncio.sleep(1)
+                # await asyncio.sleep(1)
         except Exception as err:
             print(err)
         finally:
@@ -186,7 +190,7 @@ class Cluster(object):
                 pc_tij = Tasks.pc(task, node_type=u)
 
                 while True: # Pseudocode line 26
-                    
+
                     #if ct_tij < min_cost: # Pseudocode line 27
                     if ct_tij < min_completion_time:
 

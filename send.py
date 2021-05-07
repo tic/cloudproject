@@ -3,6 +3,7 @@ import socket
 import Workflow
 import json
 
+port_offset = int(input('port offset: '))
 do_wf = input('press enter to send a workflow, or any key\nthen enter to trigger the sanity check: ')
 
 
@@ -22,15 +23,15 @@ try:
         print('generating specified workflow')
         wf = Workflow.generate_workflow(do_wf.lower())
         msg = json.dumps(wf) + '\x00'
-    
+
     elif do_wf == "metrics":
         msg = '\x01'
-        
+
     else:
-        msg = '\x01'
+        msg = '\x02'
 
     print('connecting to cluster')
-    server = socket.create_connection(('127.0.0.1', 15555))
+    server = socket.create_connection(('127.0.0.1', 15555 + port_offset))
 
     print('sending to cluster')
     server.send(msg.encode('utf-8'))

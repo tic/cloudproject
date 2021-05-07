@@ -13,7 +13,7 @@ MBs = lambda x : x * KBs(1024)
 # As loosely defined on p.139 of the paper.
 # Processing speed is the number of CPUs times the base processing speed.
 # CCR is the ratio between communication and compute time
-CCR = 2
+CCR = 6
 base_proc_speed = 10
 base_io_speed = (MBs(base_proc_speed*CCR), MBs(base_proc_speed*CCR)) #(MBs(100), MBs(75))
 node_types = [
@@ -81,7 +81,7 @@ class Node(object):
                 #print("right before printing node id")
                 #print("node id ", self.__id, " running ", next_task.name)
                 await self.task_manager.wait_to_run(next_task, self.__id)
-                #print('successfully waited') 
+                #print('successfully waited')
                 total_run_time = self.task_manager.rt(next_task, self.ntype)
                 task_execution_time = total_run_time
                 print(f'node#{self.__id} running task {next_task} ({task_execution_time}s)')
@@ -94,6 +94,20 @@ class Node(object):
                 # Update node execution time metric
                 self.execution_time += task_execution_time
                 print(f'node#{self.__id} finished {next_task}')
+
+                if self.task_manager.verify_workflow_completion():
+                    print('running metrics')
+                    try:
+                        from Metrics import ANCT, TC, RU
+                        anct = ANCT(self.task_manager, self.task_manager.cluster.wf_list)
+                        tc = TC(self.task_manager.cluster.get_si_list())
+                        ru = RU(self.task_manager.cluster.get_si_list())
+                        print("All tasks completed")
+                        print("ANCT is: ", anct)
+                        print("TC is: ", tc)
+                        print("ru is: ", ru)
+                    except Exception as err:
+                        print(err)
             else:
                 # Node has not been assigned a task.
                 # Allow other things to run
