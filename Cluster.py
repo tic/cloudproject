@@ -12,21 +12,26 @@ class Cluster(object):
         self.__task_queue = []
         self.working = False
         self.wf_list = []   #list of all workflows that arrive
-        if not scheduler_type is None:
+        self.scheduler_type = scheduler_type
+        self.node_list = node_list
+        #set_up_nodes_for_fifo(scheduler_type, node_list)
+        #await asyncio.sleep(1)
+        #print(self.scheduler_type)
+
+    def set_up_nodes_for_fifo(self, scheduler_type, node_list):
+        if scheduler_type == "fifo":  
             self.scheduler_type = scheduler_type
-            #node_list should be in the same order as types in node_types
+        #node_list should be in the same order as types in node_types
             for i in range(len(node_list)):
+                #print("creating node list")
                 number_of_nodes_of_type_i = node_list[i]
-                for n in number_of_nodes_of_type_i:
+                for n in range(number_of_nodes_of_type_i):
+                    #print("creating node")
                     SI_uk = Node(self.__tasks, i)
                     nev = asyncio.create_task(SI_uk.node_event_loop())
                     self.__node_event_loops.append(nev)
                     selected_service_instance = SI_uk
                     self.__nodes.append(selected_service_instance)
-            self.__nodes.append(selected_service_instance)
-        else:
-            self.scheduler_type = None
-
 
     # Get available service instances
     def get_si_list(self):
@@ -43,6 +48,7 @@ class Cluster(object):
             sock.setblocking(False)
 
             loop = asyncio.get_event_loop()
+            self.set_up_nodes_for_fifo(self.scheduler_type, self.node_list)
             print('cluster is ready')
             while True: # while workflows arrive...
                 # Receive a workflow from a sender
@@ -83,6 +89,8 @@ class Cluster(object):
 
                 if not self.scheduler_type is None:
                     self.__tasks.add_tasks_from_wf(wf)
+                    print("Tasks added to Dataframe")
+                    await asyncio.sleep(1)
                     
                 if self.scheduler_type is None:
                     # Workflow received. Proceed with the algorithm!
@@ -113,6 +121,7 @@ class Cluster(object):
                     print("tasks all scheduled")
                     # Tasks scheduled. Release control for a bit
                     await asyncio.sleep(1)
+
         except Exception as err:
             print(err)
         finally:

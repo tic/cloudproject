@@ -28,6 +28,7 @@ class Tasks(object):
             'unmapped_parent_count', # the number of parents who are not yet mapped to a service instance node. Used for Algorithm 1
             'complete',
             'scheduled',
+            'running'
         ])
         self.taskdf.set_index('name', inplace=True)
 
@@ -132,6 +133,40 @@ class Tasks(object):
         min_task = min_task.head(1).squeeze().name
         #print("finding next task")
         return min_task
+
+    # Returns only the name of the next task to run for a fifo scheduler
+    def get_next_task_fifo(self, srv_instance):
+        if self.taskdf.size > 0:
+            #print("getting next task")
+            #print("greater than zero")
+            #print(self.taskdf)
+            #print('space')
+            #print(self.taskdf.index)
+            for task_name in self.taskdf[self.taskdf.complete == False].index:
+                #print("looking for tasks")
+                taskobj = self.get_task_row(task_name)
+                if (taskobj.service_instance_id is None) and (self.ready_to_run_fifo(task_name)):
+                    #print("task found")
+                    if (not taskobj.running is True):
+                        self.update_task_field(task_name, 'running', True)
+                        self.update_task_field(task_name, 'service_instance_id', srv_instance)
+                        #taskobj.service_instance_id = srv_instance
+                        #print("found task")
+                        return task_name
+            #print("no task foundpython m")
+        return None
+
+    
+    # checks if a task is ready to run assuming the use of fifo scheduler
+    # basically make sure all of its parents have been assigned
+    def ready_to_run_fifo(self, task):
+        #print("checking if ready to run")
+        parents = self.get_task_row(task).parents
+        for p in parents:
+            p_obj = self.get_task_row(p)
+            if p_obj.service_instance_id is None:
+                return False
+        return True
 
 
     # If a node is about to run a task, this function makes sure that it can't run until

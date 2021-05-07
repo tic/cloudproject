@@ -59,8 +59,10 @@ class Node(object):
         self.sleeping = False
         task_search_attempts = 1
         while self.operating:
-
-            next_task = self.task_manager.get_next_task(self.__id)
+            #print("operating")
+            #next_task = self.task_manager.get_next_task(self.__id)
+            next_task = self.task_manager.get_next_task_fifo(self.__id)
+            #print(next_task)
             #print("next task is ", str(next_task))
             if next_task is not None:
                 #print("next task is not none")
