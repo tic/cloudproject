@@ -14,19 +14,15 @@ class Cluster(object):
         self.wf_list = []   #list of all workflows that arrive
         self.scheduler_type = scheduler_type
         self.node_list = node_list
-        #set_up_nodes_for_fifo(scheduler_type, node_list)
-        #await asyncio.sleep(1)
-        #print(self.scheduler_type)
+
 
     def set_up_nodes_for_fifo(self, scheduler_type, node_list):
         if scheduler_type == "fifo":  
             self.scheduler_type = scheduler_type
         #node_list should be in the same order as types in node_types
             for i in range(len(node_list)):
-                #print("creating node list")
                 number_of_nodes_of_type_i = node_list[i]
                 for n in range(number_of_nodes_of_type_i):
-                    #print("creating node")
                     SI_uk = Node(self.__tasks, i)
                     nev = asyncio.create_task(SI_uk.node_event_loop())
                     self.__node_event_loops.append(nev)
@@ -36,7 +32,6 @@ class Cluster(object):
     # Get available service instances
     def get_si_list(self):
         return self.__nodes #This makes more sense w/in context of TaskSchedule algorithm
-        #return list(filter(lambda node : not node.working, self.__nodes))
 
     async def event_loop(self):
         sock = None
@@ -69,7 +64,6 @@ class Cluster(object):
                         print("Not all tasks completed")
                     continue
                 while '\x00' not in data:
-                    # print('receiving block', len(data) / 512)
                     block = (await loop.sock_recv(client, 512)).decode('utf-8')
                     data += block
 
@@ -109,11 +103,9 @@ class Cluster(object):
                         task_names = unmapped_tasks[unmapped_tasks['unmapped_parent_count'] == 0].index.tolist()
                         task_pct = [{"name": n, "pct": self.__tasks.calc_pct(n)} for n in task_names]
                         task_pct = sorted(task_pct, key=lambda x: x['pct'], reverse=True)
-                        #print(task_pct)
                         ntasks = len(task_pct) - 1
                         for i, t in enumerate(task_pct):
                             # Algorithm 2: Task Scheduler
-                            # print(f'Scheduling task {i}/{ntasks}')
                             self.task_schedule(t["name"])
 
                             # for each mapped task, updated all child task unmapped_parent_count fields
@@ -148,7 +140,6 @@ class Cluster(object):
             ct_tij = Tasks.ct(task, service_instance.getID())
             pc_tij = Tasks.pc(task, service_instance.ntype)
 
-            #print("the ct is ", ct_tij)
             while True: # Pseudocode line 7
                 if ct_tij < min_completion_time: # Pseudocode line 8
                     # Pseudocode lines 9-10
@@ -156,8 +147,6 @@ class Cluster(object):
                     min_completion_time = max(ct_tij, lct_tij)
                     dup_tasks = list(temp_dt)
 
-                    # print(ct_tij, lct_tij)
-                    # print(pc_tij, min_cost)
                     if ct_tij <= lct_tij and pc_tij < min_cost: # Pseudocode line 11
                         # Pseudocode line 12
                         min_cost = pc_tij
@@ -165,15 +154,7 @@ class Cluster(object):
                         break
 
                 # Pseudocode line 13
-                #tb_min = float('inf')
-                #t_b = None
                 t_b_time, t_b = Tasks.get_earliest_start_time(task, srv_id=service_instance.getID())
-                #for t_ip in taskobj.parents:
-                #    t_obj = Tasks.get_task_row(t_ip)
-                #    arg = Tasks.ct(t_ip) + Tasks.dt(t_ip, task, t_obj.service_instance_id)
-                #    if arg < tb_min:
-                #        tb_min = arg
-                #        t_b = t_ip
 
                 # Pseudocode line 14
                 WT_k = Tasks.taskdf[Tasks.taskdf.service_instance_id == service_instance.id].index # this is supposed to get a list of the names of tasks which have been mapped to this service instance
@@ -182,20 +163,10 @@ class Cluster(object):
 
                     # This is the amount of time the service instance will have to run the duplicated tasks
                     #   before it is able to run the actual task t_ij
-                #    pretask_duplication_overhead = 0
                     ct_tij = Tasks.ct(task, curr_node=service_instance.getID(), duplicated_tasks=temp_dt)
-                    #for t in temp_dt:
-                    #    temp_obj = Tasks.get_task_row(t)
-                    #    runtime = temp_obj.minimum_runtime / service_instance.process_speed
-                    #    write_time = sum([f['size'] for f in temp_obj.files if f['link'] == 'output']) / service_instance.write_speed
-                    #    pretask_duplication_overhead += runtime + write_time
-
-                    # Update ct_tij by assuming that all the tasks in tempDT are duplicated to the current service instance
-                    #ct_tij += pretask_duplication_overhead
 
                     # Pseudocode lines 17-18
                     for t_k in WT_k:
-                        #if Tasks.ct(t_k, t_k.service_instance_id) > Tasks.lct(t_k): break
                         if t_k.completion_time > Tasks.lct(t_k): break
 
                 else: break # Pseudocode lines 19-20
@@ -215,12 +186,10 @@ class Cluster(object):
 
                 while True: # Pseudocode line 26
                     
-                    #if ct_tij < min_cost: # Pseudocode line 27
                     if ct_tij < min_completion_time:
 
                         # Pseudocode line 28
                         u_star = u
-                        #min_cost = max(ct_tij, lct_tij)
                         min_completion_time = max(ct_tij, lct_tij)
                         dup_tasks = list(temp_dt)
 
@@ -231,26 +200,14 @@ class Cluster(object):
                             break
 
                     # Pseudocode line 31
-                    #t_b = None # TODO
                     t_b_time, t_b = Tasks.get_earliest_start_time(task, hyp_node_type=u)
-                    #print("ct is ", ct_tij)
-                    #print("min completion is ", min_completion_time)
-                    #print("Tb is ", t_b)
                     if t_b is not None and t_b not in temp_dt: # Pseudocode line 32
                         temp_dt.append(t_b) # Pseudocode line 33
 
                         # Pseudocode line 34
                         # This is the amount of time the service instance will have to run the duplicated tasks
                         #   before it is able to run the actual task t_ij
-                    #    pretask_duplication_overhead = 0
-                    #    for t in temp_dt:
-                    #        temp_obj = Tasks.get_task_row(t)
-                    #        runtime = temp_obj.minimum_runtime / node_types[u][0]
-                    #        write_time = sum([f['size'] for f in temp_obj.files if f['link'] == 'output']) / node_types[u][2]
-                    #        pretask_duplication_overhead += runtime + write_time
-
                         # Update ct_tij by assuming that all the tasks in tempDT are duplicated to the current service instance
-                    #    ct_tij += pretask_duplication_overhead
                         ct_tij = Tasks.ct(task, duplicated_tasks=temp_dt, hyp_node_type=u)
 
                     else: break # Pseudocode lines 35-36
@@ -259,7 +216,6 @@ class Cluster(object):
                 # Pseudocode line 38
                 # Lease a new service instance, SI_uk, with type u_star
 
-                # print('provisioning node', u_star)
                 SI_uk = Node(self.__tasks, u_star)
                 nev = asyncio.create_task(SI_uk.node_event_loop())
                 self.__node_event_loops.append(nev)
@@ -272,8 +228,6 @@ class Cluster(object):
         # Pseudocode line 40
         # Map all the tasks in dup_tasks to selected_service_instance
         dup_task_new_names = [Tasks.duplicate_task(d) for d in dup_tasks]
-        #if selected_service_instance is None:
-        #    print("tag is ", tag)
         Tasks.update_task_field(dup_task_new_names, 'service_instance_id', selected_service_instance.getID())
         Tasks.update_task_field(dup_task_new_names, 'scheduled', crt())
         # Pseudocode line 41

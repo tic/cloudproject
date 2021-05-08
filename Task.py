@@ -131,36 +131,24 @@ class Tasks(object):
         # Find the min. scheduled task
         min_task = matches[matches.scheduled == matches.scheduled.min()]
         min_task = min_task.head(1).squeeze().name
-        #print("finding next task")
         return min_task
 
     # Returns only the name of the next task to run for a fifo scheduler
     def get_next_task_fifo(self, srv_instance):
         if self.taskdf.size > 0:
-            #print("getting next task")
-            #print("greater than zero")
-            #print(self.taskdf)
-            #print('space')
-            #print(self.taskdf.index)
             for task_name in self.taskdf[self.taskdf.complete == False].index:
-                #print("looking for tasks")
                 taskobj = self.get_task_row(task_name)
                 if (taskobj.service_instance_id is None) and (self.ready_to_run_fifo(task_name)):
-                    #print("task found")
                     if (not taskobj.running is True):
                         self.update_task_field(task_name, 'running', True)
                         self.update_task_field(task_name, 'service_instance_id', srv_instance)
-                        #taskobj.service_instance_id = srv_instance
-                        #print("found task")
                         return task_name
-            #print("no task foundpython m")
         return None
 
     
     # checks if a task is ready to run assuming the use of fifo scheduler
     # basically make sure all of its parents have been assigned
     def ready_to_run_fifo(self, task):
-        #print("checking if ready to run")
         parents = self.get_task_row(task).parents
         for p in parents:
             p_obj = self.get_task_row(p)
@@ -172,25 +160,19 @@ class Tasks(object):
     # If a node is about to run a task, this function makes sure that it can't run until
     # all predecessors have been run and data transfered    
     async def wait_to_run(self, task, srv_id):
-        #print("checking to see if we can run")
         parents = self.get_task_row(task).parents
-        #print("parents are ", parents)
         flag = True
         while flag:
-            #print("top of loop")
             flag1 = False
             for p in parents:
-                #print("instrumentation parents")
                 parentobj = self.get_task_row(p)
                 if parentobj.complete == False:
                     flag1 = True
                     break
-            #print("instrumentation 1")
             current_time = crt()
             if flag1:
                 flag = True
             else:
-                #print("flag1 is ", flag1)
                 flag2 = False
                 for p in parents:
                     parentobj = self.get_task_row(p)
@@ -201,9 +183,7 @@ class Tasks(object):
                     flag = True
                 else:
                     flag = False
-            #print("flag is ", flag)
             await sleep(0.00000000001)
-        #print("out of loop")
 
         return 0
 

@@ -59,31 +59,19 @@ class Node(object):
         self.sleeping = False
         task_search_attempts = 1
         while self.operating:
-            #print("operating")
-            #next_task = self.task_manager.get_next_task(self.__id)
             next_task = self.task_manager.get_next_task_fifo(self.__id)
-            #print(next_task)
-            #print("next task is ", str(next_task))
             if next_task is not None:
-                #print("next task is not none")
                 # ###### Provisioned time management ###### #
                 condition = (task_search_attempts > 0)
                 self.awaken_time = crt() * condition + int(not condition) * self.awaken_time
                 task_search_attempts = 0
-                #print("trying to awaken")
                 # ###### #
 
                 # Simulate the task
                 # Total execution time is the input time, output time, and run time
-                #task_execution_time = self.task_manager.it(next_task) + self.task_manager.ot(next_task) + self.task_manager.rt(next_task, self.ntype)
-                #total_read_time = self.task_manager.it()
-                #total_write_time = self.task_manager.ot(next_task)
                 curr_time = crt()
                 # wait for all predecessors to be met before running
-                #print("right before printing node id")
-                #print("node id ", self.__id, " running ", next_task.name)
                 await self.task_manager.wait_to_run(next_task, self.__id)
-                #print('successfully waited') 
                 total_run_time = self.task_manager.rt(next_task, self.ntype)
                 task_execution_time = total_run_time
                 print(f'node#{self.__id} running task {next_task} ({task_execution_time}s)')
@@ -110,6 +98,8 @@ class Node(object):
                 # If node is self.sleeping, sleep for 1 second. If awake, sleep for just 0.2s
                 await asyncio.sleep(2 * int(self.sleeping) + 0.2 * int(not self.sleeping))
 
+
+    # I don't think the below function ever gets used
     def __str__(self):
         return f'node#{self.__id} w proc spd. {self.speed}x'
 

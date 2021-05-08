@@ -5,16 +5,9 @@ import pandas
 
 def NCT(task_df, wf):
     # Takes a task_df and wf object as input
-    #print("Calculating NCT")
-    #print(task_df)
-    #print(wf)
-    #print(wf.name)
     rdf = task_df.taskdf[task_df.taskdf['workflow']==wf.name]
-    #print('Workflow in Task dataframe has been found')
     ct_wf = rdf['completion_time'].max()
-    #print('latest completion time of workflow found')
     NCT = (ct_wf - wf.arrival_time) / (rdf.minimum_runtime.sum())
-    #print("NCT has been calculated")
     return NCT
 
 def ANCT(task_df, wf_array):

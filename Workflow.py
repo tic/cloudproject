@@ -48,6 +48,7 @@ class Workflow(object):
     def __str__(self):
         return f'WF obj | {self.name}'
 
+    # this function was never used
     def tasks(self):
         from Task import Tasks
         return list(map(lambda job : Task(job), self.wf['workflow']['jobs']))
