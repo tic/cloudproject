@@ -3,7 +3,7 @@ import asyncio
 
 print('creating a cluster.. use send.py to give it a workflow')
 
-cloud = Cluster(scheduler_type="fifo", node_list = [5,5,5,5])
+cloud = Cluster(scheduler_type="fifo", node_list = [4,4,4,4])
 
 evloop = asyncio.get_event_loop()
 try:

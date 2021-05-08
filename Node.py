@@ -13,7 +13,7 @@ MBs = lambda x : x * KBs(1024)
 # As loosely defined on p.139 of the paper.
 # Processing speed is the number of CPUs times the base processing speed.
 # CCR is the ratio between communication and compute time
-CCR = 2
+CCR = 6
 base_proc_speed = 10
 base_io_speed = (MBs(base_proc_speed*CCR), MBs(base_proc_speed*CCR)) #(MBs(100), MBs(75))
 node_types = [
